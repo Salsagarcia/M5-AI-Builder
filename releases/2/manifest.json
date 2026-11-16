@@ -1,0 +1,13 @@
+{
+  "schema_version": 2,
+  "revision": 2,
+  "applications": [
+    {
+      "name": "prueba_github",
+      "version": "0.2d",
+      "path": "apps/prueba_github.py",
+      "sha256": "0e128c5a8f4720699ae6ed6ea8d9da94aeee3504a3943a9cc467550c8a3b6277",
+      "bytes": 174
+    }
+  ]
+}
