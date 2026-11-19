@@ -1,5 +1,6 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
+  "revision": 4,
   "applications": [
     {
       "name": "prueba_github",
@@ -7,6 +8,13 @@
       "path": "apps/prueba_github.py",
       "sha256": "0e128c5a8f4720699ae6ed6ea8d9da94aeee3504a3943a9cc467550c8a3b6277",
       "bytes": 174
+    },
+    {
+      "name": "contador_core2",
+      "version": "0.1",
+      "path": "apps/contador_core2.py",
+      "sha256": "802f6d832ef8044bd7c4a215276ac22d02c7c4dad23d211010f5b805698fb378",
+      "bytes": 1152
     }
   ]
 }
