@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": 6,
+  "revision": 7,
   "applications": [
     {
       "name": "prueba_github",
@@ -29,6 +29,13 @@
       "path": "apps/cronometro_core2.py",
       "sha256": "d67d272d06453ab4fa779cdb6d4ddb8306dbcc54c4e6f81ab850be1807591e4d",
       "bytes": 1061
+    },
+    {
+      "name": "inclinometro_core2",
+      "version": "0.1",
+      "path": "apps/inclinometro_core2.py",
+      "sha256": "dcef34b0c7641f4005053ef815887c397889e443dd6564c6215840ff85d4ee6d",
+      "bytes": 2663
     }
   ]
 }
