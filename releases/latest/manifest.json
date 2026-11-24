@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": 5,
+  "revision": 6,
   "applications": [
     {
       "name": "prueba_github",
@@ -22,6 +22,13 @@
       "path": "apps/reloj_core2.py",
       "sha256": "7b8174ceb9ae140e79790ee0f35bb69e6b4c3c57c48d244c460374da151c6ad1",
       "bytes": 1524
+    },
+    {
+      "name": "cronometro_core2",
+      "version": "0.1",
+      "path": "apps/cronometro_core2.py",
+      "sha256": "d67d272d06453ab4fa779cdb6d4ddb8306dbcc54c4e6f81ab850be1807591e4d",
+      "bytes": 1061
     }
   ]
 }
