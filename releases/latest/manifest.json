@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": 7,
+  "revision": 8,
   "applications": [
     {
       "name": "prueba_github",
@@ -32,10 +32,10 @@
     },
     {
       "name": "inclinometro_core2",
-      "version": "0.1",
+      "version": "0.2",
       "path": "apps/inclinometro_core2.py",
-      "sha256": "dcef34b0c7641f4005053ef815887c397889e443dd6564c6215840ff85d4ee6d",
-      "bytes": 2663
+      "sha256": "ec03fe71a490bc3398d853c399ecec8b568a7c535defb3dc8245c5fccaca804c",
+      "bytes": 4245
     }
   ]
 }
