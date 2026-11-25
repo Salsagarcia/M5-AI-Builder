@@ -24,12 +24,22 @@ def main():
     for a in m['applications']:
         n=a['name']; check(re.fullmatch(r'[a-z][a-z0-9_]{0,39}',n) and n not in seen and a['path']=='apps/'+n+'.py'); seen.add(n)
         p=Path(a['path']); check(not p.is_symlink()); b=p.read_bytes(); check(len(b)==a['bytes'] and hashlib.sha256(b).hexdigest()==a['sha256'])
-    check(name not in seen) # V0.11: nuevas aplicaciones solamente
+    previous=next((a for a in m['applications'] if a['name']==name),None)
+    if previous is not None:
+        def numeric(v):
+            check(re.fullmatch(r'[0-9]+(?:\.[0-9]+)*',v))
+            parts=[int(x) for x in v.split('.')]
+            while len(parts)>1 and parts[-1]==0: parts.pop()
+            return tuple(parts)
+        check(numeric(version)>numeric(previous['version']))
     p=Path('pending')/(name+'.py'); check(not p.is_symlink()); b=p.read_bytes(); check(0<len(b)<=32768); b.decode('utf-8'); compile(b,str(p),'exec')
     import ast
     check(any(isinstance(n,ast.FunctionDef) and n.name=='ejecutar' for n in ast.parse(b).body))
-    dest=Path('apps')/(name+'.py'); check(not dest.exists() and not dest.is_symlink())
-    m['applications'].append(dict(name=name,version=version,path=dest.as_posix(),sha256=hashlib.sha256(b).hexdigest(),bytes=len(b))); m['revision']+=1
+    dest=Path('apps')/(name+'.py'); check(not dest.is_symlink() and dest.exists()==(previous is not None))
+    entry=dict(name=name,version=version,path=dest.as_posix(),sha256=hashlib.sha256(b).hexdigest(),bytes=len(b))
+    if previous is None: m['applications'].append(entry)
+    else: m['applications'][m['applications'].index(previous)]=entry
+    m['revision']+=1
     raw=(json.dumps(m,ensure_ascii=False,indent=2)+'\n').encode()
     key=serialization.load_pem_private_key(os.environ['M5_SIGNING_KEY'].encode(),password=os.environ['M5_SIGNING_PASSWORD'].encode())
     check(isinstance(key,ec.EllipticCurvePrivateKey) and isinstance(key.curve,ec.SECP256R1))
