@@ -103,7 +103,7 @@ def ejecutar():
         else: machine.reset()
     seleccion=0
     while True:
-        k=elegir('V0.8c '+cp_wifi.status(),['Remote Keyboard','Aplicaciones locales','UIFlow2 temporal','UIFlow2 permanente','Configuracion','Catalogo GitHub','Configuracion WiFi','Actualizar Launcher'],seleccion)
+        k=elegir('V0.8d '+cp_wifi.status(),['Remote Keyboard','Aplicaciones locales','UIFlow2 temporal','UIFlow2 permanente','Configuracion','Catalogo GitHub','Configuracion WiFi','Actualizar Launcher'],seleccion)
         if k is None: return
         seleccion=k
         if k==0:
