@@ -27,17 +27,27 @@ def main():
     else:
         check(not (base/'apps').exists() or not list((base/'apps').iterdir()))
         m=dict(device='cardputer_v1_1',schema=1,revision=0,applications=[])
-    apps=m['applications']; check(isinstance(apps,list) and len(apps)<40)
+    apps=m['applications']; check(isinstance(apps,list) and len(apps)<=40)
     seen=set()
     for a in apps:
         n=a['name']; check(name_ok(n) and n not in seen and a['path']=='apps/'+n+'.py' and version_ok(a['version']))
         seen.add(n); p=base/a['path']; check(not p.is_symlink())
         b=p.read_bytes(); check(0<len(b)<=32768 and len(b)==a['bytes'] and hashlib.sha256(b).hexdigest()==a['sha256'])
-    check(name not in seen)
+    previous=next((a for a in apps if a['name']==name),None)
+    def numeric(v):
+        parts=[int(x) for x in v.split('.')]
+        while len(parts)>1 and parts[-1]==0: parts.pop()
+        return tuple(parts)
+    if previous is None:
+        check(len(apps)<40)
+    else:
+        check(numeric(version)>numeric(previous['version']))
     p=base/'pending'/(name+'.py'); dest=base/'apps'/(name+'.py')
-    check(not p.is_symlink() and not dest.exists() and not dest.is_symlink())
+    check(not p.is_symlink() and dest.exists()==(previous is not None) and not dest.is_symlink())
     b=p.read_bytes(); check(0<len(b)<=32768); compile(b.decode('utf-8'),str(p),'exec')
-    apps.append(dict(name=name,version=version,path='apps/'+name+'.py',bytes=len(b),sha256=hashlib.sha256(b).hexdigest()))
+    entry=dict(name=name,version=version,path='apps/'+name+'.py',bytes=len(b),sha256=hashlib.sha256(b).hexdigest())
+    if previous is None: apps.append(entry)
+    else: apps[apps.index(previous)]=entry
     m['revision']+=1
     raw=(json.dumps(m,indent=2)+'\n').encode(); check(len(raw)<=8192)
     key=serialization.load_pem_private_key(os.environ['M5_SIGNING_KEY'].encode(),password=os.environ['M5_SIGNING_PASSWORD'].encode())
