@@ -1,0 +1,14 @@
+{
+  "device": "cardputer_v1_1",
+  "schema": 1,
+  "revision": 1,
+  "applications": [
+    {
+      "name": "prueba_cardputer",
+      "version": "0.1",
+      "path": "apps/prueba_cardputer.py",
+      "bytes": 499,
+      "sha256": "f954432e6ac3485f5b101bdab1369f9b7a5d73a0cede264869202c070407c0da"
+    }
+  ]
+}
