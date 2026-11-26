@@ -10,7 +10,8 @@ def ejecutar():
     lcd.drawString("M5 AI BUILDER",5,12)
     lcd.setTextSize(1)
     lcd.setTextColor(0xffffff,0x102638)
-    lcd.drawString("Cardputer: instalacion OK",5,50)
+    lcd.drawString("Cardputer: version 0.2",5,50)
+    lcd.drawString("Actualizacion OK",5,70)
     lcd.drawString("G0: volver",5,105)
     while True:
         M5.update()
