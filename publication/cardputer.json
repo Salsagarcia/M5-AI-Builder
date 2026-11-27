@@ -2,14 +2,9 @@
   "schema": 1,
   "items": [
     {
-      "kind": "library",
-      "name": "m5lib_gps",
-      "version": "0.1"
-    },
-    {
       "kind": "app",
       "name": "gps_cardputer",
-      "version": "0.1"
+      "version": "0.2"
     }
   ]
 }
