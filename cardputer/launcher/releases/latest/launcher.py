@@ -98,6 +98,106 @@ def libinit():
             if not existe(p): os.rename(p+'.bak',p)
         elif f.endswith('.py.new') and libname(f[:-7]):
             os.remove(LIBDIR+'/'+f)
+
+def libcatalog():
+    import json,binascii
+    from cp_catalogo_v08a import descarga,KEY
+    from cp_ecdsa import verificar
+    raw=descarga(LIBROOT+'manifest.json',8192)
+    sig=descarga(LIBROOT+'manifest.sig',256)
+    if not verificar(raw,KEY,binascii.unhexlify(sig.strip())): raise ValueError('Firma invalida')
+    m=json.loads(raw.decode())
+    if m['device']!='cardputer_v1_1' or m['schema']!=1 or m['kind']!='libraries': raise ValueError('Catalogo incompatible')
+    rev=m['revision']; entries=m['libraries']
+    if type(rev)!=int or not 1<=rev<=2147483647 or not isinstance(entries,list) or len(entries)>40: raise ValueError('Catalogo invalido')
+    nv=esp32.NVS('cp_libs')
+    try: old=nv.get_i32('revision')
+    except OSError: old=0
+    if rev<old: raise ValueError('Revision antigua')
+    seen=set()
+    for a in entries:
+        n=a['name']; h=a['sha256']; size=a['bytes']; v=a['version']
+        if not libname(n) or n in seen or a['path']!='libraries/modules/'+n+'.py' or type(size)!=int or not 1<=size<=32768 or not isinstance(h,str) or len(h)!=64 or any(c not in '0123456789abcdef' for c in h) or not isinstance(v,str) or not 1<=len(v)<=20: raise ValueError('Entrada invalida')
+        seen.add(n)
+    nv.set_i32('revision',rev); nv.commit()
+    return entries
+
+def libinstall(a):
+    import sys
+    from cp_catalogo_v08a import descarga,sha,hash_archivo,existe
+    n=a['name']; p=LIBDIR+'/'+n+'.py'; h=a['sha256']
+    data=descarga(a['path'],a['bytes'])
+    if len(data)!=a['bytes'] or sha(data)!=h: raise ValueError('Hash incorrecto')
+    compile(data.decode(),p,'exec')
+    with open(p+'.new','wb') as f: f.write(data)
+    if hash_archivo(p+'.new')!=h: raise ValueError('Error escritura')
+    if hasattr(os,'sync'): os.sync()
+    if existe(p):
+        if existe(p+'.bak'): os.remove(p+'.bak')
+        os.rename(p,p+'.bak')
+    try:
+        os.rename(p+'.new',p)
+        if hash_archivo(p)!=h: raise ValueError('Error final')
+        if hasattr(os,'sync'): os.sync()
+    except Exception:
+        if existe(p): os.remove(p)
+        if existe(p+'.bak'): os.rename(p+'.bak',p)
+        raise
+    sys.modules.pop(n,None)
+
+def versionnum(v):
+    if not isinstance(v,str) or not 1<=len(v)<=20: raise ValueError('Version invalida')
+    parts=v.split('.')
+    if any(not x or any(c not in '0123456789' for c in x) for x in parts): raise ValueError('Version invalida')
+    nums=[int(x) for x in parts]
+    while len(nums)>1 and nums[-1]==0: nums.pop()
+    return tuple(nums)
+
+def depcatalog():
+    import cp_catalogo_v08a as cat
+    apps=cat.validar(cat.descarga('releases/latest/manifest.json',8192),cat.descarga('releases/latest/manifest.sig',256))
+    for a in apps:
+        deps=a.get('dependencies',[])
+        if not isinstance(deps,list) or len(deps)>16: raise ValueError('Dependencias invalidas')
+        seen=set()
+        for d in deps:
+            if not isinstance(d,dict) or not libname(d['name']) or d['name'] in seen: raise ValueError('Dependencia invalida')
+            seen.add(d['name']); versionnum(d['min_version'])
+    return apps
+
+def depmenu():
+    import cp_catalogo_v08a as cat
+    try:
+        apps=depcatalog(); sel=0
+        while True:
+            k=elegir('CATALOGO CARDPUTER',[a['name'][:19]+' '+cat.situacion(a) for a in apps] or ['Sin apps'],sel)
+            if k is None or not apps: return
+            sel=k; a=apps[k]; deps=a.get('dependencies',[])
+            plan=[]
+            if deps:
+                libs={b['name']:b for b in libcatalog()}
+                for d in deps:
+                    b=libs.get(d['name'])
+                    if b is None or versionnum(b['version'])<versionnum(d['min_version']): raise ValueError('Falta '+d['name'])
+                    p=LIBDIR+'/'+b['name']+'.py'
+                    if not cat.existe(p) or cat.hash_archivo(p)!=b['sha256']: plan.append(b)
+            st=cat.situacion(a)
+            if elegir(a['name'][:30],[st+' '+a['version'],'Dependencias: %d'%len(deps),'Volver'])!=0: continue
+            if plan:
+                if elegir('DEPENDENCIAS NECESARIAS',[b['name']+' '+b['version'] for b in plan]+['Continuar'])!=len(plan): continue
+                if elegir('CONFIRMAR INSTALACION',['Cancelar','Instalar conjunto'])!=1: continue
+                for b in plan: libinstall(b)
+            if st!='OK': cat.instalar(a)
+            elegir('Instalacion correcta',['Volver'])
+    except Exception as e:
+        print(repr(e)); elegir('ERROR CATALOGO',[str(e)[:30],'Volver'])
+
+def libcanremove(n):
+    # Conservative: legacy apps have no dependency metadata.
+    # Do not delete libraries while any local application exists.
+    return not any(f.endswith('.py') for f in os.listdir('/flash/apps'))
+
+
 def libmenu():
     import json,binascii,sys
     from cp_catalogo_v08a import descarga,sha,hash_archivo,existe,KEY
@@ -111,28 +211,14 @@ def libmenu():
             if i is None or not names: return
             n=names[i]; p=LIBDIR+'/'+n+'.py'
             if elegir(n,['Volver','Desinstalar'])==1 and elegir('CONFIRMAR BORRADO',['Cancelar','Borrar'])==1:
+                if not libcanremove(n):
+                    elegir('Hay aplicaciones locales',['Borrado bloqueado','Volver']); return
                 if existe(p+'.bak'): os.remove(p+'.bak')
                 os.remove(p)
                 sys.modules.pop(n,None)
             return
         if k!=0: return
-        raw=descarga(LIBROOT+'manifest.json',8192)
-        sig=descarga(LIBROOT+'manifest.sig',256)
-        if not verificar(raw,KEY,binascii.unhexlify(sig.strip())): raise ValueError('Firma invalida')
-        m=json.loads(raw.decode())
-        if m['device']!='cardputer_v1_1' or m['schema']!=1 or m['kind']!='libraries': raise ValueError('Catalogo incompatible')
-        rev=m['revision']; entries=m['libraries']
-        if type(rev)!=int or not 1<=rev<=2147483647 or not isinstance(entries,list) or len(entries)>40: raise ValueError('Catalogo invalido')
-        nv=esp32.NVS('cp_libs')
-        try: old=nv.get_i32('revision')
-        except OSError: old=0
-        if rev<old: raise ValueError('Revision antigua')
-        seen=set()
-        for a in entries:
-            n=a['name']; h=a['sha256']; size=a['bytes']; v=a['version']
-            if not libname(n) or n in seen or a['path']!='libraries/modules/'+n+'.py' or type(size)!=int or not 1<=size<=32768 or not isinstance(h,str) or len(h)!=64 or any(c not in '0123456789abcdef' for c in h) or not isinstance(v,str) or not 1<=len(v)<=20: raise ValueError('Entrada invalida')
-            seen.add(n)
-        nv.set_i32('revision',rev); nv.commit()
+        entries=libcatalog()
         labels=[]
         for a in entries:
             p=LIBDIR+'/'+a['name']+'.py'
@@ -143,24 +229,7 @@ def libmenu():
         a=entries[i]; n=a['name']; p=LIBDIR+'/'+n+'.py'; h=a['sha256']
         if existe(p) and hash_archivo(p)==h: return
         if elegir(n+' '+a['version'],['Cancelar','Instalar / actualizar'])!=1: return
-        data=descarga(a['path'],a['bytes'])
-        if len(data)!=a['bytes'] or sha(data)!=h: raise ValueError('Hash incorrecto')
-        compile(data.decode(),p,'exec')
-        with open(p+'.new','wb') as f: f.write(data)
-        if hash_archivo(p+'.new')!=h: raise ValueError('Error escritura')
-        if hasattr(os,'sync'): os.sync()
-        if existe(p):
-            if existe(p+'.bak'): os.remove(p+'.bak')
-            os.rename(p,p+'.bak')
-        try:
-            os.rename(p+'.new',p)
-            if hash_archivo(p)!=h: raise ValueError('Error final')
-            if hasattr(os,'sync'): os.sync()
-        except Exception:
-            if existe(p): os.remove(p)
-            if existe(p+'.bak'): os.rename(p+'.bak',p)
-            raise
-        sys.modules.pop(n,None)
+        libinstall(a)
         elegir('BIBLIOTECA INSTALADA',['Volver'])
     except Exception as e:
         print(repr(e)); elegir('ERROR BIBLIOTECAS',[str(e)[:30],'Volver'])
@@ -189,7 +258,7 @@ def ejecutar():
         else: machine.reset()
     seleccion=0
     while True:
-        k=elegir('V0.9a '+cp_wifi.status(),['Remote Keyboard','Aplicaciones locales','UIFlow2 temporal','UIFlow2 permanente','Configuracion','Catalogo GitHub','Configuracion WiFi','Actualizar Launcher','Bibliotecas'],seleccion)
+        k=elegir('V0.9b '+cp_wifi.status(),['Remote Keyboard','Aplicaciones locales','UIFlow2 temporal','UIFlow2 permanente','Configuracion','Catalogo GitHub','Configuracion WiFi','Actualizar Launcher','Bibliotecas'],seleccion)
         if k is None: return
         seleccion=k
         if k==0:
@@ -205,7 +274,7 @@ def ejecutar():
         elif k==6: cp_wifi.menu(elegir)
         elif k==5:
             import cp_catalogo_v08a
-            cp_catalogo_v08a.menu(elegir)
+            depmenu()
         elif k==4:
             c=elegir('ARRANQUE',['Mostrar Launcher','Remote Keyboard','UIFlow2 (reiniciar)'])
             if c in (0,1):
