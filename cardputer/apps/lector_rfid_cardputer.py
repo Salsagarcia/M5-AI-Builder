@@ -1,6 +1,7 @@
 import M5, time
 from machine import Pin, SoftI2C
 from hardware import MatrixKeyboard
+from m5lib_hardware import load
 from m5lib_pahub import PaHub
 from m5lib_rfid import RFIDReader
 
@@ -41,7 +42,7 @@ def draw(uid,count,label,present,error):
     lcd=M5.Lcd
     lcd.fillScreen(BG)
     lcd.setTextSize(1); lcd.setTextColor(0x54c9ff,BG)
-    lcd.drawString('RFID 2 V0.1 '+label,4,4)
+    lcd.drawString('RFID 2 V0.2 '+label,4,4)
     lcd.setTextColor(GREEN if present else FG,BG)
     lcd.drawString('Tarjeta detectada' if present else 'Acerca una tarjeta',4,24)
     lcd.setTextSize(2)
@@ -59,21 +60,18 @@ def main():
     bus=None; hub=None; kb=None
     try:
         kb=MatrixKeyboard()
-        bus=SoftI2C(sda=Pin(2),scl=Pin(1),freq=100000,timeout=50000)
-        mode=choose(kb,'CONEXION RFID',['Directo (sin PaHub)','PaHub 0x70'])
-        if mode is None: return
+        profiles,_=load()
+        cfg=profiles['rfid']
+        bus=SoftI2C(sda=Pin(2),scl=Pin(1),freq=profiles['i2c_freq'],timeout=50000)
         label='DIRECTO'
-        if mode==1:
-            hub=PaHub(bus)
-            direct,channels=hub.scan()
-            if 0x28 in direct: raise ValueError('RFID directo: conflicto')
-            found=[i for i,c in enumerate(channels) if 0x28 in c]
-            if not found: raise ValueError('RFID no detectado')
-            k=choose(kb,'CANAL RFID',['CH%d'%i for i in found])
-            if k is None: return
-            hub.select(found[k]); label='CH%d'%found[k]
-        if 0x28 not in bus.scan(): raise ValueError('RFID no detectado')
-        reader=RFIDReader(bus)
+        if cfg['mode']=='pahub':
+            hub=PaHub(bus,cfg['hub'])
+            hub.disable()
+            if cfg['address'] in bus.scan(): raise ValueError('Conflicto bus directo')
+            hub.select(cfg['channel'])
+            label='CH%d'%cfg['channel']
+        if cfg['address'] not in bus.scan(): raise ValueError('Revisar perfil y conexion')
+        reader=RFIDReader(bus,cfg['address'])
         last=None; active=None; count=0; misses=0; errors=0
         next_read=time.ticks_ms()
         draw(last,count,label,False,'')
