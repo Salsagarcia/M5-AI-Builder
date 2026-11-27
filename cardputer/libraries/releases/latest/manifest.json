@@ -2,7 +2,7 @@
   "device": "cardputer_v1_1",
   "schema": 1,
   "kind": "libraries",
-  "revision": 6,
+  "revision": 7,
   "libraries": [
     {
       "name": "m5lib_test",
@@ -45,6 +45,13 @@
       "path": "libraries/modules/m5lib_gps.py",
       "bytes": 2407,
       "sha256": "19db890f00023852634d9e529730fd2b284d1c728ce728351dba8eb104fda7a3"
+    },
+    {
+      "name": "m5lib_irtest",
+      "version": "0.1",
+      "path": "libraries/modules/m5lib_irtest.py",
+      "bytes": 680,
+      "sha256": "83824cb9eb844366b4cba7286a81ec3394080651f23f4973992aec8251a30807"
     }
   ]
 }
