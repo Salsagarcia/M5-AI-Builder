@@ -5,3 +5,5 @@
 - Keep existing signed publication, version monotonicity and production approval. Never push changes while an AutoPublish request awaits approval.
 - Test saved profile changes without republishing apps. Report physical validation separately from compilation and publication.
 - If a new module needs a profile not yet supported, extend the shared profile schema and launcher together before releasing its app.
+
+- Future applications storing user data must use the shared m5lib_storage API once available; support internal flash and microSD without hardcoded application storage paths. Never format media automatically.
