@@ -3,23 +3,8 @@
   "items": [
     {
       "kind": "app",
-      "name": "telemetro_cardputer",
-      "version": "0.2"
-    },
-    {
-      "kind": "app",
-      "name": "lector_rfid_cardputer",
-      "version": "0.2"
-    },
-    {
-      "kind": "app",
-      "name": "gps_cardputer",
-      "version": "0.3"
-    },
-    {
-      "kind": "app",
-      "name": "ir_gpio_cardputer",
-      "version": "0.2"
+      "name": "prueba_sd_cardputer",
+      "version": "0.1"
     }
   ]
 }
