@@ -2,8 +2,14 @@
   "schema": 1,
   "items": [
     {
-      "kind": "launcher",
-      "version": "0.11a"
+      "kind": "library",
+      "name": "m5lib_hardware",
+      "version": "0.1"
+    },
+    {
+      "kind": "app",
+      "name": "perfiles_hw_cardputer",
+      "version": "0.1"
     }
   ]
 }
