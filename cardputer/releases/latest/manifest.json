@@ -1,7 +1,7 @@
 {
   "device": "cardputer_v1_1",
   "schema": 1,
-  "revision": 5,
+  "revision": 6,
   "applications": [
     {
       "name": "prueba_cardputer",
@@ -47,6 +47,23 @@
         },
         {
           "name": "m5lib_vl53l0x",
+          "min_version": "0.1"
+        }
+      ]
+    },
+    {
+      "name": "lector_rfid_cardputer",
+      "version": "0.1",
+      "path": "apps/lector_rfid_cardputer.py",
+      "bytes": 4413,
+      "sha256": "00236d8ef69a83b5cbf45d1233f0a595a34ea223c33d1aa9191fa2b388689324",
+      "dependencies": [
+        {
+          "name": "m5lib_pahub",
+          "min_version": "0.1"
+        },
+        {
+          "name": "m5lib_rfid",
           "min_version": "0.1"
         }
       ]

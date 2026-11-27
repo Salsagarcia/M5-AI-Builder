@@ -2,7 +2,7 @@
   "device": "cardputer_v1_1",
   "schema": 1,
   "kind": "libraries",
-  "revision": 4,
+  "revision": 5,
   "libraries": [
     {
       "name": "m5lib_test",
@@ -31,6 +31,13 @@
       "path": "libraries/modules/m5lib_vl53l0x.py",
       "bytes": 910,
       "sha256": "8803f0e85acadb9dab9a0e5afab2943e396db9c5647954a2236fe788265b5f49"
+    },
+    {
+      "name": "m5lib_rfid",
+      "version": "0.1",
+      "path": "libraries/modules/m5lib_rfid.py",
+      "bytes": 442,
+      "sha256": "a50e8682522e8910fa878e210d315e4b828278fbcbaab8a765210e3052cc9a20"
     }
   ]
 }
