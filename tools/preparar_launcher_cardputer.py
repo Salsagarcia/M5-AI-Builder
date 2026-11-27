@@ -10,7 +10,7 @@ def verify(pub,raw,sig):
     pub.verify(utils.encode_dss_signature(int.from_bytes(sig[:32],'big'),int.from_bytes(sig[32:],'big')),raw,ec.ECDSA(hashes.SHA256()))
 def main():
     version=os.environ['LAUNCHER_VERSION']
-    check(re.fullmatch(r'0\.8[a-z]',version) is not None)
+    check(re.fullmatch(r'0\.[89][a-z]',version) is not None)
     base=Path('cardputer/launcher'); root=base/'releases/latest'
     mf=root/'manifest.json'; sf=root/'manifest.sig'; dest=root/'launcher.py'
     pub=ec.EllipticCurvePublicKey.from_encoded_point(ec.SECP256R1(),PUBLIC)
