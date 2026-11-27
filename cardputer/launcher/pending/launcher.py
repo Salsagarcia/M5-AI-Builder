@@ -235,31 +235,90 @@ def libmenu():
         print(repr(e)); elegir('ERROR BIBLIOTECAS',[str(e)[:30],'Volver'])
 
 
+
+
+class PaHub:
+    def __init__(self, bus, address=0x70):
+        if not 0x70 <= address <= 0x77:
+            raise ValueError('Direccion PaHub invalida')
+        self.bus = bus
+        self.address = address
+
+    def disable(self):
+        self.bus.writeto(self.address, b'\x00')
+
+    def select(self, channel):
+        if type(channel) != int or not 0 <= channel < 6:
+            raise ValueError('Canal invalido')
+        self.bus.writeto(self.address, bytes([1 << channel]))
+
+    def scan(self):
+        self.disable()
+        try:
+            direct = self.bus.scan()
+            channels = []
+            for ch in range(6):
+                self.select(ch)
+                channels.append([a for a in self.bus.scan() if a not in direct])
+            return direct, channels
+        finally:
+            self.disable()
+
 def hardware_menu():
     from machine import Pin, SoftI2C
     freq=100000
-    hints={0x23:'BH1750?',0x29:'ToF?',0x38:'AHT20?',0x44:'SHT3x?',0x48:'ADS1115?',0x68:'IMU/RTC?',0x76:'BMP/BME?',0x77:'BMP/BME?'}
+    hints={0x28:'RFID2?',0x29:'ToF?',0x23:'BH1750?',0x38:'AHT20?',0x44:'SHT3x?',0x48:'ADS1115?',0x68:'IMU/RTC?'}
+    def describe(a):
+        return '0x%02X %d %s'%(a,a,hints.get(a,''))
     while True:
-        k=elegir('MODULOS EXTERNOS',['Escanear I2C','Frecuencia: %d kHz'%(freq//1000),'Pines Grove','Volver'])
-        if k is None or k==3: return
-        if k==1:
+        k=elegir('MODULOS EXTERNOS',['Escanear I2C','Escanear PaHub','Probar canal PaHub','Frecuencia: %d kHz'%(freq//1000),'Pines Grove','Volver'])
+        if k is None or k==5: return
+        if k==3:
             v=elegir('FRECUENCIA I2C',['100 kHz','400 kHz'])
             if v is not None: freq=(100000,400000)[v]
-        elif k==2:
+            continue
+        if k==4:
             elegir('GROVE CARDPUTER V1.1',['Negro: GND','Rojo: 5V','Amarillo: SDA G2','Blanco: SCL G1','Logica 3.3V','Volver'])
-        elif k==0:
+            continue
+        bus=None
+        hub=None
+        try:
+            bus=SoftI2C(sda=Pin(2),scl=Pin(1),freq=freq,timeout=50000)
+            addresses=bus.scan()
+            if k==0:
+                elegir('I2C: %d dispositivos'%len(addresses),[describe(a) for a in addresses] or ['Ningun dispositivo'])
+                continue
+            candidates=[a for a in addresses if 0x70<=a<=0x77]
+            if not candidates:
+                elegir('PAHUB NO DETECTADO',['Volver'])
+                continue
+            i=elegir('CONFIRMAR DIRECCION PAHUB',['PaHub 0x%02X'%a for a in candidates]+['Cancelar'])
+            if i is None or i==len(candidates): continue
+            hub=PaHub(bus,candidates[i])
+            if k==1:
+                direct,channels=hub.scan()
+                while True:
+                    labels=['CH%d: '%j+(','.join('%02X'%a for a in c) if c else 'Libre') for j,c in enumerate(channels)]
+                    i=elegir('PAHUB 0x%02X'%hub.address,labels+['Bus directo','Volver'])
+                    if i is None or i==7: break
+                    data=direct if i==6 else channels[i]
+                    elegir('BUS DIRECTO' if i==6 else 'CANAL %d'%i,[describe(a) for a in data] or ['Sin dispositivos'])
+            else:
+                i=elegir('PROBAR CANAL',['CH%d'%j for j in range(6)])
+                if i is not None:
+                    hub.disable()
+                    direct=bus.scan()
+                    hub.select(i)
+                    data=[a for a in bus.scan() if a not in direct]
+                    hub.disable()
+                    elegir('CANAL %d'%i,[describe(a) for a in data] or ['Sin dispositivos'])
+        except Exception as e:
+            print(repr(e)); elegir('ERROR I2C',[str(e)[:30],'Volver'])
+        finally:
             try:
-                M5.Lcd.fillScreen(BG)
-                M5.Lcd.drawString('Escaneando I2C...',5,25)
-                bus=SoftI2C(sda=Pin(2),scl=Pin(1),freq=freq,timeout=50000)
-                try:
-                    addresses=bus.scan()
-                finally:
-                    if hasattr(bus,'deinit'): bus.deinit()
-                lines=['0x%02X  %d  %s'%(a,a,hints.get(a,'')) for a in addresses]
-                elegir('I2C: %d dispositivos'%len(addresses),lines or ['Ningun dispositivo'])
-            except Exception as e:
-                print(repr(e)); elegir('ERROR I2C',[str(e)[:30],'Volver'])
+                if hub is not None: hub.disable()
+            except Exception as e: print('PaHub cierre:',repr(e))
+            if bus is not None and hasattr(bus,'deinit'): bus.deinit()
 
 def ejecutar():
     M5.begin()
@@ -285,7 +344,7 @@ def ejecutar():
         else: machine.reset()
     seleccion=0
     while True:
-        k=elegir('V0.10a '+cp_wifi.status(),['Remote Keyboard','Aplicaciones locales','UIFlow2 temporal','UIFlow2 permanente','Configuracion','Catalogo GitHub','Configuracion WiFi','Actualizar Launcher','Bibliotecas','Modulos externos'],seleccion)
+        k=elegir('V0.10b '+cp_wifi.status(),['Remote Keyboard','Aplicaciones locales','UIFlow2 temporal','UIFlow2 permanente','Configuracion','Catalogo GitHub','Configuracion WiFi','Actualizar Launcher','Bibliotecas','Modulos externos'],seleccion)
         if k is None: return
         seleccion=k
         if k==0:
