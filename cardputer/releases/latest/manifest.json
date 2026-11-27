@@ -1,7 +1,7 @@
 {
   "device": "cardputer_v1_1",
   "schema": 1,
-  "revision": 4,
+  "revision": 5,
   "applications": [
     {
       "name": "prueba_cardputer",
@@ -30,6 +30,23 @@
         },
         {
           "name": "m5lib_test2",
+          "min_version": "0.1"
+        }
+      ]
+    },
+    {
+      "name": "telemetro_cardputer",
+      "version": "0.1",
+      "path": "apps/telemetro_cardputer.py",
+      "bytes": 4653,
+      "sha256": "a1ade88e3d5b455c46917008b762dcd3fb7d0992da59b29cafd70c8310f6626f",
+      "dependencies": [
+        {
+          "name": "m5lib_pahub",
+          "min_version": "0.1"
+        },
+        {
+          "name": "m5lib_vl53l0x",
           "min_version": "0.1"
         }
       ]
