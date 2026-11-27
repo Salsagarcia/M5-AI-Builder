@@ -2,12 +2,13 @@
   "schema": 1,
   "items": [
     {
-      "kind": "launcher",
-      "version": "0.10b"
+      "kind": "library",
+      "name": "m5lib_vl53l0x",
+      "version": "0.1"
     },
     {
-      "kind": "library",
-      "name": "m5lib_pahub",
+      "kind": "app",
+      "name": "telemetro_cardputer",
       "version": "0.1"
     }
   ]
