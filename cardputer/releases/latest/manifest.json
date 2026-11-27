@@ -1,7 +1,7 @@
 {
   "device": "cardputer_v1_1",
   "schema": 1,
-  "revision": 7,
+  "revision": 8,
   "applications": [
     {
       "name": "prueba_cardputer",
@@ -70,10 +70,10 @@
     },
     {
       "name": "gps_cardputer",
-      "version": "0.1",
+      "version": "0.2",
       "path": "apps/gps_cardputer.py",
-      "bytes": 1915,
-      "sha256": "d551004d077f3865a9ef5cbc3aa702f4829f7ff6b4d2b9b7eda02df4664a8b5a",
+      "bytes": 1917,
+      "sha256": "52859805e308861d125eab38f89a67bfdef09de5126034a3283198ce2a49d5ee",
       "dependencies": [
         {
           "name": "m5lib_gps",
