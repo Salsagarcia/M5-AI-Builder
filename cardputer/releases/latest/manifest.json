@@ -1,7 +1,7 @@
 {
   "device": "cardputer_v1_1",
   "schema": 1,
-  "revision": 2,
+  "revision": 3,
   "applications": [
     {
       "name": "prueba_cardputer",
@@ -9,6 +9,13 @@
       "path": "apps/prueba_cardputer.py",
       "bytes": 540,
       "sha256": "cd6ef0d2a48cdd066519a4065e85482fc2e83159e8d30d0ff5a1ecfc473893d5"
+    },
+    {
+      "name": "prueba_biblioteca",
+      "version": "0.1",
+      "path": "apps/prueba_biblioteca.py",
+      "bytes": 998,
+      "sha256": "b80ee404a8ce26ce476168e5b421ec13a624ffb83c3464a2cd157f6e66bcaf75"
     }
   ]
 }
