@@ -2,9 +2,9 @@
   "device": "cardputer_v1_1",
   "schema": 1,
   "kind": "launcher",
-  "revision": 2,
-  "version": "0.8d",
+  "revision": 3,
+  "version": "0.9a",
   "path": "launcher/releases/latest/launcher.py",
-  "bytes": 5589,
-  "sha256": "01c6a415df09fdaa44cf91f31ffdbc4cdaafae23f57f5132a3dd9696dc8d5b97"
+  "bytes": 9864,
+  "sha256": "4972e1f50a89c36fd14d8a8bf9c65ad80ef5eced3d59e6977ce98b3659fd02b1"
 }

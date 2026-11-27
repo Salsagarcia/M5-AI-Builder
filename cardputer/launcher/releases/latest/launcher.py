@@ -80,6 +80,91 @@ def apps():
                     os.remove(ruta)
                 except OSError as e: print('Error borrado:',e); elegir('ERROR AL BORRAR',['Volver'])
 
+
+LIBDIR='/flash/m5_libs'
+LIBROOT='libraries/releases/latest/'
+def libname(n):
+    return isinstance(n,str) and 7<=len(n)<=40 and n.startswith('m5lib_') and all(c in 'abcdefghijklmnopqrstuvwxyz0123456789_' for c in n)
+def libinit():
+    import sys
+    try: os.mkdir(LIBDIR)
+    except OSError:
+        if not os.stat(LIBDIR)[0]&0x4000: raise
+    if LIBDIR not in sys.path: sys.path.append(LIBDIR)
+    from cp_catalogo_v08a import existe
+    for f in os.listdir(LIBDIR):
+        if f.endswith('.py.bak') and libname(f[:-7]):
+            p=LIBDIR+'/'+f[:-4]
+            if not existe(p): os.rename(p+'.bak',p)
+        elif f.endswith('.py.new') and libname(f[:-7]):
+            os.remove(LIBDIR+'/'+f)
+def libmenu():
+    import json,binascii,sys
+    from cp_catalogo_v08a import descarga,sha,hash_archivo,existe,KEY
+    from cp_ecdsa import verificar
+    try:
+        libinit()
+        k=elegir('BIBLIOTECAS',['Catalogo GitHub','Bibliotecas locales','Volver'])
+        if k==1:
+            names=sorted(f[:-3] for f in os.listdir(LIBDIR) if f.endswith('.py') and libname(f[:-3]))
+            i=elegir('BIBLIOTECAS LOCALES',names or ['Sin bibliotecas'])
+            if i is None or not names: return
+            n=names[i]; p=LIBDIR+'/'+n+'.py'
+            if elegir(n,['Volver','Desinstalar'])==1 and elegir('CONFIRMAR BORRADO',['Cancelar','Borrar'])==1:
+                if existe(p+'.bak'): os.remove(p+'.bak')
+                os.remove(p)
+                sys.modules.pop(n,None)
+            return
+        if k!=0: return
+        raw=descarga(LIBROOT+'manifest.json',8192)
+        sig=descarga(LIBROOT+'manifest.sig',256)
+        if not verificar(raw,KEY,binascii.unhexlify(sig.strip())): raise ValueError('Firma invalida')
+        m=json.loads(raw.decode())
+        if m['device']!='cardputer_v1_1' or m['schema']!=1 or m['kind']!='libraries': raise ValueError('Catalogo incompatible')
+        rev=m['revision']; entries=m['libraries']
+        if type(rev)!=int or not 1<=rev<=2147483647 or not isinstance(entries,list) or len(entries)>40: raise ValueError('Catalogo invalido')
+        nv=esp32.NVS('cp_libs')
+        try: old=nv.get_i32('revision')
+        except OSError: old=0
+        if rev<old: raise ValueError('Revision antigua')
+        seen=set()
+        for a in entries:
+            n=a['name']; h=a['sha256']; size=a['bytes']; v=a['version']
+            if not libname(n) or n in seen or a['path']!='libraries/modules/'+n+'.py' or type(size)!=int or not 1<=size<=32768 or not isinstance(h,str) or len(h)!=64 or any(c not in '0123456789abcdef' for c in h) or not isinstance(v,str) or not 1<=len(v)<=20: raise ValueError('Entrada invalida')
+            seen.add(n)
+        nv.set_i32('revision',rev); nv.commit()
+        labels=[]
+        for a in entries:
+            p=LIBDIR+'/'+a['name']+'.py'
+            status='INSTALAR' if not existe(p) else ('OK' if hash_archivo(p)==a['sha256'] else 'ACTUALIZAR')
+            labels.append(a['name']+' '+status)
+        i=elegir('CATALOGO BIBLIOTECAS',labels or ['Sin bibliotecas'])
+        if i is None or not entries: return
+        a=entries[i]; n=a['name']; p=LIBDIR+'/'+n+'.py'; h=a['sha256']
+        if existe(p) and hash_archivo(p)==h: return
+        if elegir(n+' '+a['version'],['Cancelar','Instalar / actualizar'])!=1: return
+        data=descarga(a['path'],a['bytes'])
+        if len(data)!=a['bytes'] or sha(data)!=h: raise ValueError('Hash incorrecto')
+        compile(data.decode(),p,'exec')
+        with open(p+'.new','wb') as f: f.write(data)
+        if hash_archivo(p+'.new')!=h: raise ValueError('Error escritura')
+        if hasattr(os,'sync'): os.sync()
+        if existe(p):
+            if existe(p+'.bak'): os.remove(p+'.bak')
+            os.rename(p,p+'.bak')
+        try:
+            os.rename(p+'.new',p)
+            if hash_archivo(p)!=h: raise ValueError('Error final')
+            if hasattr(os,'sync'): os.sync()
+        except Exception:
+            if existe(p): os.remove(p)
+            if existe(p+'.bak'): os.rename(p+'.bak',p)
+            raise
+        sys.modules.pop(n,None)
+        elegir('BIBLIOTECA INSTALADA',['Volver'])
+    except Exception as e:
+        print(repr(e)); elegir('ERROR BIBLIOTECAS',[str(e)[:30],'Volver'])
+
 def ejecutar():
     M5.begin()
     # Ventana de recuperacion: G0 mantenido durante el inicio.
@@ -92,6 +177,7 @@ def ejecutar():
     try:
         with open('/flash/launcher_mode.txt') as f: directo=f.read().strip()=='keyboard'
     except OSError: directo=False
+    libinit()
     if directo: ejecutar_app('/flash/remote_keyboard.py')
     import cp_catalogo_v08a
     cp_catalogo_v08a.recuperar()
@@ -103,7 +189,7 @@ def ejecutar():
         else: machine.reset()
     seleccion=0
     while True:
-        k=elegir('V0.8d '+cp_wifi.status(),['Remote Keyboard','Aplicaciones locales','UIFlow2 temporal','UIFlow2 permanente','Configuracion','Catalogo GitHub','Configuracion WiFi','Actualizar Launcher'],seleccion)
+        k=elegir('V0.9a '+cp_wifi.status(),['Remote Keyboard','Aplicaciones locales','UIFlow2 temporal','UIFlow2 permanente','Configuracion','Catalogo GitHub','Configuracion WiFi','Actualizar Launcher','Bibliotecas'],seleccion)
         if k is None: return
         seleccion=k
         if k==0:
@@ -112,6 +198,7 @@ def ejecutar():
         elif k==1: apps()
         elif k==2: temporal()
         elif k==3: modo(1); machine.reset()
+        elif k==8: libmenu()
         elif k==7:
             import cp_selfupdate
             cp_selfupdate.menu(elegir)
