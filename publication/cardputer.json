@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "items": [
+    {
+      "kind": "launcher",
+      "version": "0.10b"
+    },
+    {
+      "kind": "library",
+      "name": "m5lib_pahub",
+      "version": "0.1"
+    }
+  ]
+}
