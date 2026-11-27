@@ -2,7 +2,7 @@
   "device": "cardputer_v1_1",
   "schema": 1,
   "kind": "libraries",
-  "revision": 1,
+  "revision": 2,
   "libraries": [
     {
       "name": "m5lib_test",
@@ -10,6 +10,13 @@
       "path": "libraries/modules/m5lib_test.py",
       "bytes": 171,
       "sha256": "e62948c9cc3da4d0bfb33c5fcfd98be404f27c641bea454e4bb1ad721307dbea"
+    },
+    {
+      "name": "m5lib_test2",
+      "version": "0.1",
+      "path": "libraries/modules/m5lib_test2.py",
+      "bytes": 48,
+      "sha256": "7245d05231b17d34df9433430f7a5205cf69ebaa1fe3db2c15d3afda7aa139f0"
     }
   ]
 }
