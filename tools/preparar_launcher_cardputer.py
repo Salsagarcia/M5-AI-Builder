@@ -8,9 +8,12 @@ def check(ok):
 def verify(pub,raw,sig):
     check(len(sig)==64)
     pub.verify(utils.encode_dss_signature(int.from_bytes(sig[:32],'big'),int.from_bytes(sig[32:],'big')),raw,ec.ECDSA(hashes.SHA256()))
+def versionkey(v):
+    check(re.fullmatch(r'0\.[0-9]+[a-z]',v) is not None)
+    return (int(v[2:-1]),v[-1])
 def main():
     version=os.environ['LAUNCHER_VERSION']
-    check(re.fullmatch(r'0\.[89][a-z]',version) is not None)
+    check(re.fullmatch(r'0\.(?:8|9|10)[a-z]',version) is not None)
     base=Path('cardputer/launcher'); root=base/'releases/latest'
     mf=root/'manifest.json'; sf=root/'manifest.sig'; dest=root/'launcher.py'
     pub=ec.EllipticCurvePublicKey.from_encoded_point(ec.SECP256R1(),PUBLIC)
@@ -20,7 +23,7 @@ def main():
         raw=mf.read_bytes(); verify(pub,raw,bytes.fromhex(sf.read_text().strip()))
         m=json.loads(raw); rev=m['revision']
         check(m['device']=='cardputer_v1_1' and m['schema']==1 and m['kind']=='launcher' and m['path']=='launcher/releases/latest/launcher.py')
-        check(type(rev) is int and 1<=rev<2147483647 and version>m['version'])
+        check(type(rev) is int and 1<=rev<2147483647 and versionkey(version)>versionkey(m['version']))
         old=dest.read_bytes(); check(len(old)==m['bytes'] and hashlib.sha256(old).hexdigest()==m['sha256'])
     p=base/'pending'/'launcher.py'; check(not p.is_symlink() and not dest.is_symlink())
     b=p.read_bytes(); check(0<len(b)<=32768); compile(b.decode('utf-8'),str(p),'exec')
