@@ -3,12 +3,12 @@
   "items": [
     {
       "kind": "library",
-      "name": "m5lib_vl53l0x",
+      "name": "m5lib_rfid",
       "version": "0.1"
     },
     {
       "kind": "app",
-      "name": "telemetro_cardputer",
+      "name": "lector_rfid_cardputer",
       "version": "0.1"
     }
   ]
