@@ -2,14 +2,8 @@
   "schema": 1,
   "items": [
     {
-      "kind": "library",
-      "name": "m5lib_irtest",
-      "version": "0.1"
-    },
-    {
-      "kind": "app",
-      "name": "ir_gpio_cardputer",
-      "version": "0.1"
+      "kind": "launcher",
+      "version": "0.11a"
     }
   ]
 }
