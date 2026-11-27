@@ -264,15 +264,92 @@ class PaHub:
         finally:
             self.disable()
 
+# Persistent module profiles. Configuration only; never drives pins.
+HWFILE='/flash/m5_hardware.json'
+HWDEFAULT={'tof':{'mode':'pahub','hub':112,'channel':0,'address':41},'rfid':{'mode':'pahub','hub':112,'channel':1,'address':40},'gps':{'baud':115200,'rx':2,'tx':1},'ir':{'rx':2,'tx':1},'i2c_freq':100000}
+def hwload():
+    import json
+    for path in (HWFILE,HWFILE+'.bak'):
+        try:
+            with open(path) as f: d=json.load(f)
+            if d.get('schema')!=1: continue
+            c=d['profiles']
+            for n in ('tof','rfid'):
+                a=c[n]
+                if a['mode'] not in ('direct','pahub') or a['hub'] not in range(112,120) or a['channel'] not in range(6) or a['address']!=HWDEFAULT[n]['address']: raise ValueError('I2C')
+            for n in ('gps','ir'):
+                if (c[n]['rx'],c[n]['tx']) not in ((1,2),(2,1)): raise ValueError('GPIO')
+            if c['gps']['baud'] not in (9600,115200) or c['i2c_freq'] not in (100000,400000): raise ValueError('Frecuencia')
+            return c
+        except (OSError,ValueError,KeyError,TypeError,AttributeError): pass
+    return json.loads(json.dumps(HWDEFAULT))
+
+def hwsave(c):
+    import json
+    from cp_catalogo_v08a import existe
+    with open(HWFILE+'.new','w') as f: json.dump({'schema':1,'profiles':c},f)
+    if hasattr(os,'sync'): os.sync()
+    if existe(HWFILE):
+        if existe(HWFILE+'.bak'): os.remove(HWFILE+'.bak')
+        os.rename(HWFILE,HWFILE+'.bak')
+    os.rename(HWFILE+'.new',HWFILE)
+    if hasattr(os,'sync'): os.sync()
+
+def hwprofiles():
+    c=hwload()
+    while True:
+        k=elegir('PERFILES DE MODULOS',['Mini ToF','RFID 2','GPS UART','IR GPIO','Frecuencia I2C','Guardar perfiles','Restaurar defaults','Volver sin guardar'])
+        if k is None or k==7: return
+        if k==5:
+            hwsave(c); elegir('PERFILES GUARDADOS',['Volver']); return
+        if k==6:
+            if elegir('RESTAURAR DEFAULTS',['Cancelar','Restaurar'])==1:
+                import json
+                c=json.loads(json.dumps(HWDEFAULT))
+            continue
+        if k==4:
+            i=elegir('FRECUENCIA I2C',['100 kHz','400 kHz'],int(c['i2c_freq']==400000))
+            if i is not None: c['i2c_freq']=(100000,400000)[i]
+            continue
+        n=('tof','rfid','gps','ir')[k]; a=c[n]
+        while True:
+            if k<2:
+                i=elegir(n.upper(),['Modo: '+a['mode'],'PaHub: 0x%02X'%a['hub'],'Canal: %d'%a['channel'],'Direccion: 0x%02X'%a['address'],'Volver'])
+                if i is None or i>=3: break
+                if i==0:
+                    j=elegir('CONEXION',['Directo','PaHub'],int(a['mode']=='pahub'))
+                    if j is not None: a['mode']=('direct','pahub')[j]
+                elif i==1:
+                    j=elegir('DIRECCION PAHUB',['0x%02X'%x for x in range(112,120)],a['hub']-112)
+                    if j is not None: a['hub']=112+j
+                else:
+                    j=elegir('CANAL',['CH%d'%x for x in range(6)],a['channel'])
+                    if j is not None: a['channel']=j
+            else:
+                opts=['RX G%d TX G%d'%(a['rx'],a['tx'])]
+                if k==2: opts.append('Baudios: %d'%a['baud'])
+                i=elegir(n.upper(),opts+['Volver'])
+                if i is None or i==len(opts): break
+                if i==0:
+                    j=elegir('PINES',['RX G2 TX G1','RX G1 TX G2'],int(a['rx']==1))
+                    if j is not None: a['rx'],a['tx']=((2,1),(1,2))[j]
+                else:
+                    j=elegir('BAUDIOS',['9600','115200'],int(a['baud']==115200))
+                    if j is not None: a['baud']=(9600,115200)[j]
+
 def hardware_menu():
     from machine import Pin, SoftI2C
-    freq=100000
+    freq=hwload()['i2c_freq']
     hints={0x28:'RFID2?',0x29:'ToF?',0x23:'BH1750?',0x38:'AHT20?',0x44:'SHT3x?',0x48:'ADS1115?',0x68:'IMU/RTC?'}
     def describe(a):
         return '0x%02X %d %s'%(a,a,hints.get(a,''))
     while True:
-        k=elegir('MODULOS EXTERNOS',['Escanear I2C','Escanear PaHub','Probar canal PaHub','Frecuencia: %d kHz'%(freq//1000),'Pines Grove','Volver'])
-        if k is None or k==5: return
+        k=elegir('MODULOS EXTERNOS',['Escanear I2C','Escanear PaHub','Probar canal PaHub','Frecuencia: %d kHz'%(freq//1000),'Pines Grove','Perfiles de modulos','Volver'])
+        if k is None or k==6: return
+        if k==5:
+            try: hwprofiles(); freq=hwload()['i2c_freq']
+            except Exception as e: elegir('ERROR PERFILES',[str(e)[:30],'Volver'])
+            continue
         if k==3:
             v=elegir('FRECUENCIA I2C',['100 kHz','400 kHz'])
             if v is not None: freq=(100000,400000)[v]
@@ -344,7 +421,7 @@ def ejecutar():
         else: machine.reset()
     seleccion=0
     while True:
-        k=elegir('V0.10b '+cp_wifi.status(),['Remote Keyboard','Aplicaciones locales','UIFlow2 temporal','UIFlow2 permanente','Configuracion','Catalogo GitHub','Configuracion WiFi','Actualizar Launcher','Bibliotecas','Modulos externos'],seleccion)
+        k=elegir('V0.11a '+cp_wifi.status(),['Remote Keyboard','Aplicaciones locales','UIFlow2 temporal','UIFlow2 permanente','Configuracion','Catalogo GitHub','Configuracion WiFi','Actualizar Launcher','Bibliotecas','Modulos externos'],seleccion)
         if k is None: return
         seleccion=k
         if k==0:
