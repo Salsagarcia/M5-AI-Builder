@@ -46,6 +46,26 @@ def main():
     check(not p.is_symlink() and dest.exists()==(previous is not None) and not dest.is_symlink())
     b=p.read_bytes(); check(0<len(b)<=32768); compile(b.decode('utf-8'),str(p),'exec')
     entry=dict(name=name,version=version,path='apps/'+name+'.py',bytes=len(b),sha256=hashlib.sha256(b).hexdigest())
+    # Dependencias declaradas junto al codigo; incluidas en la firma.
+    dp=p.with_suffix('.deps.json')
+    deps=json.loads(dp.read_text()) if dp.exists() else []
+    check(isinstance(deps,list) and len(deps)<=16)
+    names=set()
+    for d in deps:
+        check(isinstance(d,dict) and set(d)=={'name','min_version'})
+        n=d['name']; check(name_ok(n) and n.startswith('m5lib_') and len(n)>6 and n not in names and version_ok(d['min_version']))
+        names.add(n)
+    if deps:
+        lr=base/'libraries/releases/latest'
+        rawlib=(lr/'manifest.json').read_bytes()
+        verify(pub,rawlib,bytes.fromhex((lr/'manifest.sig').read_text().strip()))
+        lm=json.loads(rawlib)
+        check(lm['device']=='cardputer_v1_1' and lm['kind']=='libraries' and lm['schema']==1)
+        libs={a['name']:a for a in lm['libraries']}
+        for d in deps:
+            a=libs[d['name']]
+            check(numeric(a['version'])>=numeric(d['min_version']))
+        entry['dependencies']=deps
     if previous is None: apps.append(entry)
     else: apps[apps.index(previous)]=entry
     m['revision']+=1
