@@ -8,7 +8,7 @@ def draw(g,online,baud,rx):
     lcd=M5.Lcd
     lcd.fillScreen(BG); lcd.setTextSize(1)
     lcd.setTextColor(0x54c9ff,BG)
-    lcd.drawString('GPS V0.1  UART %d'%baud,4,4)
+    lcd.drawString('GPS V0.2  UART %d'%baud,4,4)
     lcd.setTextColor(0x76f2ab if g.fix else 0xffbc65,BG)
     lcd.drawString('POSICION VALIDA' if g.fix else 'BUSCANDO SATELITES' if online else 'SIN DATOS UART',4,20)
     lcd.setTextColor(0xffffff,BG)
@@ -19,7 +19,7 @@ def draw(g,online,baud,rx):
 
 def main():
     uart=None; kb=None
-    baud=9600; rx=2; tx=1
+    baud=115200; rx=2; tx=1
     try:
         kb=MatrixKeyboard()
         uart=UART(1,baudrate=baud,bits=8,parity=None,stop=1,rx=Pin(rx),tx=Pin(tx),rxbuf=2048,timeout=0)
