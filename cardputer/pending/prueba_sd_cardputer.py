@@ -5,7 +5,7 @@ BG=0x102638
 def show(rows):
     lcd=M5.Lcd
     lcd.fillScreen(BG); lcd.setTextSize(1)
-    lcd.setTextColor(0x54c9ff,BG); lcd.drawString('MICROSD V0.4',4,4)
+    lcd.setTextColor(0x54c9ff,BG); lcd.drawString('MICROSD V0.5',4,4)
     lcd.setTextColor(0xffffff,BG)
     for i,s in enumerate(rows): lcd.drawString(s,4,22+i*16)
     M5.update()
@@ -29,12 +29,9 @@ def main():
         if 'sd' in os.listdir('/'):
             show(['SD ya montada','Sin reinicializar SPI','G0: salir'])
         else:
-            show(['SoftSPI 100 kHz','ENTER: iniciar prueba','G0: salir'])
-            while True:
-                M5.update(); kb.tick()
-                if M5.BtnA.wasPressed(): return
-                if kb.is_pressed() and kb.get_key() in (10,13): break
-                time.sleep_ms(20)
+            show(['SoftSPI 100 kHz','Inicio automatico 2 s'])
+            time.sleep_ms(2000)
+            show(['Inicializar pines SPI'])
             try:
                 cs=Pin(4,Pin.OUT,value=1)
                 spi=SoftSPI(baudrate=100000,polarity=0,phase=0,sck=Pin(36),mosi=Pin(37),miso=Pin(35))
