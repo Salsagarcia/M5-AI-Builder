@@ -6,5 +6,9 @@
   {
     "name": "m5lib_rfid",
     "min_version": "0.1"
+  },
+  {
+    "name": "m5lib_hardware",
+    "min_version": "0.1"
   }
 ]
