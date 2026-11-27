@@ -1,6 +1,7 @@
 import M5, time
 from machine import Pin, SoftI2C
 from hardware import MatrixKeyboard
+from m5lib_hardware import load
 from m5lib_pahub import PaHub
 from m5lib_vl53l0x import RangeSensor
 
@@ -41,7 +42,7 @@ def draw(value, low, high, history, label, error):
     lcd=M5.Lcd
     lcd.fillScreen(BG)
     lcd.setTextSize(1); lcd.setTextColor(0x54c9ff,BG)
-    lcd.drawString('TELEMETRO 0.1 '+label,4,3)
+    lcd.drawString('TELEMETRO 0.2 '+label,4,3)
     lcd.setTextSize(3); lcd.setTextColor(FG,BG)
     lcd.drawString('%d mm'%value if value is not None else '--- mm',20,19)
     lcd.setTextSize(1); lcd.setTextColor(GREEN,BG)
@@ -66,20 +67,18 @@ def main():
     bus=None; hub=None; kb=None
     try:
         kb=MatrixKeyboard()
-        bus=SoftI2C(sda=Pin(2),scl=Pin(1),freq=100000,timeout=50000)
-        mode=choose(kb,'CONEXION TOF',['Directo (sin PaHub)','PaHub 0x70'])
-        if mode is None: return
+        profiles,_=load()
+        cfg=profiles['tof']
+        bus=SoftI2C(sda=Pin(2),scl=Pin(1),freq=profiles['i2c_freq'],timeout=50000)
         label='DIRECTO'
-        if mode==1:
-            hub=PaHub(bus)
-            direct,channels=hub.scan()
-            if 0x29 in direct: raise ValueError('ToF directo: conflicto')
-            found=[i for i,c in enumerate(channels) if 0x29 in c]
-            if not found: raise ValueError('ToF no detectado')
-            k=choose(kb,'CANAL TOF',['CH%d'%i for i in found])
-            if k is None: return
-            hub.select(found[k]); label='CH%d'%found[k]
-        sensor=RangeSensor(bus)
+        if cfg['mode']=='pahub':
+            hub=PaHub(bus,cfg['hub'])
+            hub.disable()
+            if cfg['address'] in bus.scan(): raise ValueError('Conflicto bus directo')
+            hub.select(cfg['channel'])
+            label='CH%d'%cfg['channel']
+        if cfg['address'] not in bus.scan(): raise ValueError('Revisar perfil y conexion')
+        sensor=RangeSensor(bus,cfg['address'])
         low=high=None; history=[]; next_read=time.ticks_ms(); errors=0
         while True:
             M5.update(); kb.tick()
