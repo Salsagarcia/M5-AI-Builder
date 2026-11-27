@@ -4,24 +4,33 @@ import machine
 BG=0x102638
 stage='Inicio'
 card=None
+def progress(s):
+    global stage
+    stage=s
+    lcd=M5.Lcd
+    lcd.fillScreen(BG); lcd.setTextSize(1)
+    lcd.setTextColor(0x54c9ff,BG); lcd.drawString('MICROSD V0.3',4,4)
+    lcd.setTextColor(0xffffff,BG); lcd.drawString(s,4,30)
+    M5.update(); time.sleep_ms(250)
 def test():
     global stage, card
-    stage='Detectar montaje'
+    progress('Detectar montaje')
     if 'sd' in os.listdir('/'):
+        progress('Leer montaje existente')
         os.listdir('/sd')
         source='SD YA MONTADA'
     else:
-        stage='Inicializar SPI slot 3'
-        card=machine.SDCard(slot=3,width=1,sck=36,miso=35,mosi=37,cs=4,freq=2000000)
-        stage='Leer tarjeta'
+        progress('Inicializar SPI slot 2')
+        card=machine.SDCard(slot=2,width=1,sck=36,miso=35,mosi=37,cs=4,freq=2000000)
+        progress('Leer tarjeta')
         card.info()
-        stage='Montar FAT'
+        progress('Montar FAT')
         os.mount(card,'/sd')
-        source='SD MONTADA SLOT 3'
-    stage='Consultar capacidad'
+        source='SD MONTADA SLOT 2'
+    progress('Consultar capacidad')
     s=os.statvfs('/sd')
     rows=[source,'Total: %.1f MiB'%(s[0]*s[2]/1048576),'Libre: %.1f MiB'%(s[0]*s[3]/1048576)]
-    stage='Escritura/lectura'
+    progress('Escritura/lectura')
     path=None
     for i in range(100):
         p='/sd/m5test_%02d'%i
@@ -49,7 +58,7 @@ def main():
         try: rows=test()
         except Exception as e: rows=['ERROR MICROSD',stage,str(e)[:36]]
         lcd=M5.Lcd; lcd.fillScreen(BG); lcd.setTextSize(1)
-        lcd.setTextColor(0x54c9ff,BG); lcd.drawString('MICROSD V0.2',4,4)
+        lcd.setTextColor(0x54c9ff,BG); lcd.drawString('MICROSD V0.3',4,4)
         lcd.setTextColor(0xffffff,BG)
         for i,s in enumerate(rows): lcd.drawString(s,4,22+i*16)
         lcd.drawString('G0: salir',4,122)
