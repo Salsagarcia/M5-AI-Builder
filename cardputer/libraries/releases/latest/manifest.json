@@ -2,7 +2,7 @@
   "device": "cardputer_v1_1",
   "schema": 1,
   "kind": "libraries",
-  "revision": 5,
+  "revision": 6,
   "libraries": [
     {
       "name": "m5lib_test",
@@ -38,6 +38,13 @@
       "path": "libraries/modules/m5lib_rfid.py",
       "bytes": 442,
       "sha256": "a50e8682522e8910fa878e210d315e4b828278fbcbaab8a765210e3052cc9a20"
+    },
+    {
+      "name": "m5lib_gps",
+      "version": "0.1",
+      "path": "libraries/modules/m5lib_gps.py",
+      "bytes": 2407,
+      "sha256": "19db890f00023852634d9e529730fd2b284d1c728ce728351dba8eb104fda7a3"
     }
   ]
 }

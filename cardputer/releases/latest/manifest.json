@@ -1,7 +1,7 @@
 {
   "device": "cardputer_v1_1",
   "schema": 1,
-  "revision": 6,
+  "revision": 7,
   "applications": [
     {
       "name": "prueba_cardputer",
@@ -64,6 +64,19 @@
         },
         {
           "name": "m5lib_rfid",
+          "min_version": "0.1"
+        }
+      ]
+    },
+    {
+      "name": "gps_cardputer",
+      "version": "0.1",
+      "path": "apps/gps_cardputer.py",
+      "bytes": 1915,
+      "sha256": "d551004d077f3865a9ef5cbc3aa702f4829f7ff6b4d2b9b7eda02df4664a8b5a",
+      "dependencies": [
+        {
+          "name": "m5lib_gps",
           "min_version": "0.1"
         }
       ]
