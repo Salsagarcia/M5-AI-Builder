@@ -1,7 +1,7 @@
 {
   "device": "cardputer_v1_1",
   "schema": 1,
-  "revision": 3,
+  "revision": 4,
   "applications": [
     {
       "name": "prueba_cardputer",
@@ -16,6 +16,23 @@
       "path": "apps/prueba_biblioteca.py",
       "bytes": 998,
       "sha256": "b80ee404a8ce26ce476168e5b421ec13a624ffb83c3464a2cd157f6e66bcaf75"
+    },
+    {
+      "name": "prueba_dependencias",
+      "version": "0.1",
+      "path": "apps/prueba_dependencias.py",
+      "bytes": 776,
+      "sha256": "7c93d5b0b04c5abfdbb1ff5f1cbfa0252af65a3457c4fe600dd9a64de4d1ae1b",
+      "dependencies": [
+        {
+          "name": "m5lib_test",
+          "min_version": "0.1"
+        },
+        {
+          "name": "m5lib_test2",
+          "min_version": "0.1"
+        }
+      ]
     }
   ]
 }
