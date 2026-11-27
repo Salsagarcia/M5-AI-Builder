@@ -2,14 +2,24 @@
   "schema": 1,
   "items": [
     {
-      "kind": "library",
-      "name": "m5lib_hardware",
-      "version": "0.1"
+      "kind": "app",
+      "name": "telemetro_cardputer",
+      "version": "0.2"
     },
     {
       "kind": "app",
-      "name": "perfiles_hw_cardputer",
-      "version": "0.1"
+      "name": "lector_rfid_cardputer",
+      "version": "0.2"
+    },
+    {
+      "kind": "app",
+      "name": "gps_cardputer",
+      "version": "0.3"
+    },
+    {
+      "kind": "app",
+      "name": "ir_gpio_cardputer",
+      "version": "0.2"
     }
   ]
 }
