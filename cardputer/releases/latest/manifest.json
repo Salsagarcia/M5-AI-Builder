@@ -1,7 +1,7 @@
 {
   "device": "cardputer_v1_1",
   "schema": 1,
-  "revision": 9,
+  "revision": 10,
   "applications": [
     {
       "name": "prueba_cardputer",
@@ -90,6 +90,19 @@
       "dependencies": [
         {
           "name": "m5lib_irtest",
+          "min_version": "0.1"
+        }
+      ]
+    },
+    {
+      "name": "perfiles_hw_cardputer",
+      "version": "0.1",
+      "path": "apps/perfiles_hw_cardputer.py",
+      "bytes": 1146,
+      "sha256": "d72bc608989824f462470a8d9583921426ead6752b924c7d4d5bb39bfb73d779",
+      "dependencies": [
+        {
+          "name": "m5lib_hardware",
           "min_version": "0.1"
         }
       ]
