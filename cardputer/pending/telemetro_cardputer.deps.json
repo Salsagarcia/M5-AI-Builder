@@ -1,0 +1,10 @@
+[
+  {
+    "name": "m5lib_pahub",
+    "min_version": "0.1"
+  },
+  {
+    "name": "m5lib_vl53l0x",
+    "min_version": "0.1"
+  }
+]
