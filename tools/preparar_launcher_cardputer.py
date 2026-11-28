@@ -13,7 +13,7 @@ def versionkey(v):
     return (int(v[2:-1]),v[-1])
 def main():
     version=os.environ['LAUNCHER_VERSION']
-    check(re.fullmatch(r'0\.(?:8|9|10|11|13)[a-z]',version) is not None)
+    check(re.fullmatch(r'0\.(?:8|9|10|11|13|14)[a-z]',version) is not None)
     base=Path('cardputer/launcher'); root=base/'releases/latest'
     mf=root/'manifest.json'; sf=root/'manifest.sig'; dest=root/'launcher.py'
     pub=ec.EllipticCurvePublicKey.from_encoded_point(ec.SECP256R1(),PUBLIC)
