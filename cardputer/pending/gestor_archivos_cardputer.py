@@ -137,16 +137,22 @@ def main():
     try:
         if not exists(flash): os.mkdir(flash)
         while True:
-            k=elegir('ARCHIVOS V0.1',['Memoria interna','Tarjeta microSD','Espacio disponible','Desmontar microSD','Volver'])
+            k=elegir('ARCHIVOS V0.2',['Memoria interna','Tarjeta microSD','Espacio disponible','Desmontar microSD','Volver'])
             if k is None or k==4: return
+            stage='Menu archivos'
             try:
                 if k==1 and not mounted:
-                    if exists('/sd'): raise OSError('SD externa ya montada')
+                    stage='Detectar montaje'
+                    if 'sd' in os.listdir('/'): raise OSError('SD externa ya montada')
+                    stage='Inicializar SPI'
                     cs=Pin(12,Pin.OUT,value=1)
                     spi=SoftSPI(baudrate=100000,polarity=0,phase=0,sck=Pin(40),miso=Pin(39),mosi=Pin(14))
                     try:
+                        stage='Inicializar tarjeta'
                         sd=SDCard(spi,cs); sd.writable=True
+                        stage='Montar FAT'
                         os.mount(sd,'/sd'); mounted=True
+                        stage='Crear m5_data SD'
                         if not exists(sdroot): os.mkdir(sdroot)
                     except Exception:
                         if not mounted: cs(1); spi.deinit(); spi=None
@@ -165,7 +171,7 @@ def main():
                         os.umount('/sd'); mounted=False
                         cs(1); spi.deinit(); spi=None
                     notice('SD desmontada')
-            except Exception as e: notice(str(e))
+            except Exception as e: elegir('ERROR: '+stage,[str(e)[:36],'Volver'])
     finally:
         if mounted:
             if hasattr(os,'sync'): os.sync()
