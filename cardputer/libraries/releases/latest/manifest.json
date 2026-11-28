@@ -2,7 +2,7 @@
   "device": "cardputer_v1_1",
   "schema": 1,
   "kind": "libraries",
-  "revision": 8,
+  "revision": 9,
   "libraries": [
     {
       "name": "m5lib_test",
@@ -59,6 +59,13 @@
       "path": "libraries/modules/m5lib_hardware.py",
       "bytes": 1402,
       "sha256": "b0b3142b92172a09b092df1579da276c2c2b947ea3d8b7ed8cdd9bf8367f7d06"
+    },
+    {
+      "name": "m5lib_sdcard",
+      "version": "0.1",
+      "path": "libraries/modules/m5lib_sdcard.py",
+      "bytes": 3737,
+      "sha256": "e894ae4172dd12add55684a070eaa1ffdbb182bca03ab6943d202b66f544e78e"
     }
   ]
 }
