@@ -2,9 +2,8 @@
   "schema": 1,
   "items": [
     {
-      "kind": "app",
-      "name": "datalogger_gps_cardputer",
-      "version": "0.1"
+      "kind": "launcher",
+      "version": "0.13a"
     }
   ]
 }
