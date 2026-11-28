@@ -198,7 +198,7 @@ def ejecutar():
         else: machine.reset()
     seleccion=0
     while True:
-        k=elegir('V0.13d '+cp_wifi.status(),['Remote Keyboard','Aplicaciones locales','UIFlow2 temporal','UIFlow2 permanente','Configuracion','Catalogo GitHub','Configuracion WiFi','Actualizar Launcher','Bibliotecas','Modulos externos','Memoria RAM','Actualizar modulos'],seleccion)
+        k=elegir('V0.14a '+cp_wifi.status(),['Remote Keyboard','Aplicaciones locales','UIFlow2 temporal','UIFlow2 permanente','Configuracion','Catalogo GitHub','Configuracion WiFi','Actualizar Launcher','Bibliotecas','Modulos externos','Memoria RAM','Actualizar modulos','Copias de seguridad'],seleccion)
         if k is None: return
         seleccion=k
         if k==0:
@@ -216,6 +216,18 @@ def ejecutar():
         elif k==5:
             import cp_catalogo_v08a
             module_run('m5lib_launcher_catalog','depmenu')
+        elif k==12:
+            try:
+                entries=libcatalog(True)
+                for n in ('m5lib_sdcard','m5lib_storage'):
+                    a=next(x for x in entries if x['name']==n)
+                    from cp_catalogo_v08a import existe,hash_archivo
+                    p=LIBDIR+'/'+n+'.py'
+                    if not existe(p) or hash_archivo(p)!=a['sha256']: libinstall(a)
+                del entries,a
+                gc.collect()
+                module_run('m5lib_launcher_backup','menu')
+            except Exception as e: elegir('ERROR COPIA',[str(e)[:30],'Actualizar modulos'])
         elif k==11:
             try:
                 libcatalog()
