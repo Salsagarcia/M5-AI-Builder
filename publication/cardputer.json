@@ -2,8 +2,13 @@
   "schema": 1,
   "items": [
     {
+      "kind": "library",
+      "name": "m5lib_launcher_backup",
+      "version": "0.1"
+    },
+    {
       "kind": "launcher",
-      "version": "0.13d"
+      "version": "0.14a"
     }
   ]
 }
