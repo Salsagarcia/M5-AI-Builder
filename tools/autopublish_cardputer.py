@@ -21,7 +21,7 @@ def main():
         version = item.get("version")
         check(isinstance(version, str) and len(version) <= 20)
         if kind == "launcher":
-            check(set(item) == {"kind", "version"} and re.fullmatch(r"0\.(8|9|10|11)[a-z]", version))
+            check(set(item) == {"kind", "version"} and re.fullmatch(r"0\.(8|9|10|11|13)[a-z]", version))
             name = "launcher"
             env = {"LAUNCHER_VERSION": version}
             script = "preparar_launcher_cardputer.py"
