@@ -78,6 +78,8 @@ def apps():
                 try:
                     if ruta+'.bak' in ['/flash/apps/'+x for x in os.listdir('/flash/apps')]: os.remove(ruta+'.bak')
                     os.remove(ruta)
+                    from cp_catalogo_v08a import existe
+                    if existe(ruta+'.deps.json'): os.remove(ruta+'.deps.json')
                 except OSError as e: print('Error borrado:',e); elegir('ERROR AL BORRAR',['Volver'])
 
 
@@ -188,14 +190,67 @@ def depmenu():
                 if elegir('CONFIRMAR INSTALACION',['Cancelar','Instalar conjunto'])!=1: continue
                 for b in plan: libinstall(b)
             if st!='OK': cat.instalar(a)
+            receipt(a)
             elegir('Instalacion correcta',['Volver'])
     except Exception as e:
         print(repr(e)); elegir('ERROR CATALOGO',[str(e)[:30],'Volver'])
 
+# Local dependency receipts bound to installed application hashes.
+def receipt(a):
+    import json
+    from cp_catalogo_v08a import hash_archivo,existe
+    p='/flash/apps/'+a['name']+'.py'
+    if not existe(p) or hash_archivo(p)!=a['sha256']: return False
+    if 'dependencies' not in a: return False
+    q=p+'.deps.json'
+    with open(q+'.new','w') as f:
+        json.dump({'sha256':a['sha256'],'dependencies':a['dependencies']},f)
+    if hasattr(os,'sync'): os.sync()
+    if existe(q): os.remove(q)
+    os.rename(q+'.new',q)
+    if hasattr(os,'sync'): os.sync()
+    return True
+
+def localdeps(p):
+    import json
+    from cp_catalogo_v08a import hash_archivo
+    try:
+        with open(p+'.deps.json') as f: d=json.load(f)
+        if d['sha256']!=hash_archivo(p): return None
+        deps=d['dependencies']
+        if not isinstance(deps,list) or len(deps)>16: return None
+        for a in deps:
+            if not libname(a['name']): return None
+            versionnum(a['min_version'])
+        return deps
+    except Exception: return None
+
+def depstatus():
+    from cp_catalogo_v08a import existe
+    rows=[]
+    for f in sorted(os.listdir('/flash/apps')):
+        if not f.endswith('.py'): continue
+        deps=localdeps('/flash/apps/'+f)
+        if deps is None: rows.append(f+': sin ficha')
+        else:
+            missing=[d['name'] for d in deps if not existe(LIBDIR+'/'+d['name']+'.py')]
+            rows.append(f+(': faltan %d'%len(missing) if missing else ': OK presencia'))
+    elegir('DEPENDENCIAS LOCALES',rows or ['Sin apps'])
+
+def depmigrate():
+    try:
+        count=0
+        for a in depcatalog():
+            if receipt(a): count+=1
+        elegir('FICHAS ACTUALIZADAS',[str(count)+' aplicaciones','Volver'])
+    except Exception as e: elegir('ERROR FICHAS',[str(e)[:30],'Volver'])
+
 def libcanremove(n):
-    # Conservative: legacy apps have no dependency metadata.
-    # Do not delete libraries while any local application exists.
-    return not any(f.endswith('.py') for f in os.listdir('/flash/apps'))
+    for f in os.listdir('/flash/apps'):
+        if not f.endswith('.py'): continue
+        deps=localdeps('/flash/apps/'+f)
+        if deps is None or any(d['name']==n for d in deps): return False
+    return True
 
 
 def libmenu():
@@ -204,7 +259,9 @@ def libmenu():
     from cp_ecdsa import verificar
     try:
         libinit()
-        k=elegir('BIBLIOTECAS',['Catalogo GitHub','Bibliotecas locales','Volver'])
+        k=elegir('BIBLIOTECAS',['Catalogo GitHub','Bibliotecas locales','Registrar apps existentes','Diagnostico local','Volver'])
+        if k==2: depmigrate(); return
+        if k==3: depstatus(); return
         if k==1:
             names=sorted(f[:-3] for f in os.listdir(LIBDIR) if f.endswith('.py') and libname(f[:-3]))
             i=elegir('BIBLIOTECAS LOCALES',names or ['Sin bibliotecas'])
@@ -212,7 +269,7 @@ def libmenu():
             n=names[i]; p=LIBDIR+'/'+n+'.py'
             if elegir(n,['Volver','Desinstalar'])==1 and elegir('CONFIRMAR BORRADO',['Cancelar','Borrar'])==1:
                 if not libcanremove(n):
-                    elegir('Hay aplicaciones locales',['Borrado bloqueado','Volver']); return
+                    elegir('Biblioteca protegida',['En uso o app sin ficha','Volver']); return
                 if existe(p+'.bak'): os.remove(p+'.bak')
                 os.remove(p)
                 sys.modules.pop(n,None)
@@ -421,7 +478,7 @@ def ejecutar():
         else: machine.reset()
     seleccion=0
     while True:
-        k=elegir('V0.11a '+cp_wifi.status(),['Remote Keyboard','Aplicaciones locales','UIFlow2 temporal','UIFlow2 permanente','Configuracion','Catalogo GitHub','Configuracion WiFi','Actualizar Launcher','Bibliotecas','Modulos externos'],seleccion)
+        k=elegir('V0.13a '+cp_wifi.status(),['Remote Keyboard','Aplicaciones locales','UIFlow2 temporal','UIFlow2 permanente','Configuracion','Catalogo GitHub','Configuracion WiFi','Actualizar Launcher','Bibliotecas','Modulos externos'],seleccion)
         if k is None: return
         seleccion=k
         if k==0:
