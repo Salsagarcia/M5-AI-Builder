@@ -2,9 +2,14 @@
   "schema": 1,
   "items": [
     {
+      "kind": "library",
+      "name": "m5lib_textinput",
+      "version": "0.1"
+    },
+    {
       "kind": "app",
       "name": "gestor_archivos_cardputer",
-      "version": "0.2"
+      "version": "0.3"
     }
   ]
 }
