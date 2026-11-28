@@ -1,7 +1,7 @@
 {
   "device": "cardputer_v1_1",
   "schema": 1,
-  "revision": 29,
+  "revision": 30,
   "applications": [
     {
       "name": "prueba_cardputer",
@@ -191,6 +191,39 @@
         },
         {
           "name": "m5lib_datalogger",
+          "min_version": "0.1"
+        }
+      ]
+    },
+    {
+      "name": "datalogger_gps_cardputer",
+      "version": "0.1",
+      "path": "apps/datalogger_gps_cardputer.py",
+      "bytes": 2662,
+      "sha256": "2e107f878dda30bbd1763d1d27b778fcea570d3c0d670fb31b1b98239771668c",
+      "dependencies": [
+        {
+          "name": "m5lib_hardware",
+          "min_version": "0.1"
+        },
+        {
+          "name": "m5lib_gps",
+          "min_version": "0.1"
+        },
+        {
+          "name": "m5lib_storage",
+          "min_version": "0.1"
+        },
+        {
+          "name": "m5lib_sdcard",
+          "min_version": "0.1"
+        },
+        {
+          "name": "m5lib_datalogger",
+          "min_version": "0.1"
+        },
+        {
+          "name": "m5lib_textinput",
           "min_version": "0.1"
         }
       ]
