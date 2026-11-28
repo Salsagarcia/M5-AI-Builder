@@ -1,7 +1,7 @@
 {
   "device": "cardputer_v1_1",
   "schema": 1,
-  "revision": 24,
+  "revision": 25,
   "applications": [
     {
       "name": "prueba_cardputer",
@@ -138,10 +138,10 @@
     },
     {
       "name": "gestor_archivos_cardputer",
-      "version": "0.1",
+      "version": "0.2",
       "path": "apps/gestor_archivos_cardputer.py",
-      "bytes": 7514,
-      "sha256": "91fbc32cf0f05a6a71ec1cb5bd4eabf12f26093c7b7ba27058220f2bac4f5e82",
+      "bytes": 7823,
+      "sha256": "1e73a782354b5237ba0a51739f586cd6f513b61add69c3899056309dc3942c8a",
       "dependencies": [
         {
           "name": "m5lib_sdcard",
