@@ -2,13 +2,8 @@
   "schema": 1,
   "items": [
     {
-      "kind": "library",
-      "name": "m5lib_datalogger",
-      "version": "0.1"
-    },
-    {
       "kind": "app",
-      "name": "prueba_datalogger_cardputer",
+      "name": "datalogger_gps_cardputer",
       "version": "0.1"
     }
   ]
