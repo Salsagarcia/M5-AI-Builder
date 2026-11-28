@@ -2,23 +2,8 @@
   "schema": 1,
   "items": [
     {
-      "kind": "library",
-      "name": "m5lib_launcher_apps",
-      "version": "0.1"
-    },
-    {
-      "kind": "library",
-      "name": "m5lib_launcher_catalog",
-      "version": "0.1"
-    },
-    {
-      "kind": "library",
-      "name": "m5lib_launcher_hw",
-      "version": "0.1"
-    },
-    {
       "kind": "launcher",
-      "version": "0.13c"
+      "version": "0.13d"
     }
   ]
 }
