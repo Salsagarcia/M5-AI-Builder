@@ -1,7 +1,6 @@
 import M5,time,os
 from hardware import MatrixKeyboard
-from machine import Pin,SoftSPI
-from m5lib_sdcard import SDCard
+from m5lib_storage import Storage, exists, join, copyfile, movefile, mkdir, remove, rename, space, entries, sync
 from m5lib_textinput import read_text
 BG=0x102638
 def elegir(titulo, opciones, inicial=0):
@@ -42,16 +41,10 @@ def elegir(titulo, opciones, inicial=0):
     finally: kb.deinit()
 
 
-def exists(p):
-    try: os.stat(p); return True
-    except OSError as e:
-        if e.args[0]==2: return False
-        raise
 def notice(s):
     elegir('INFORMACION',[str(s)[:36],'Volver'])
 def name_input(initial=''):
     return read_text('Nombre',initial,32,'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-. ',lambda s: bool(s.strip()) and s not in ('.','..') and not s.endswith((' ','.')))
-def join(p,n): return p+'/'+n
 def preview(p):
     with open(p,'rb') as f:
         while True:
@@ -60,43 +53,19 @@ def preview(p):
             s=''.join(chr(c) if 32<=c<127 else ' ' for c in b)
             rows=[s[i:i+30] for i in range(0,len(s),30)]
             if elegir('VISTA TEXTO',rows+['Siguiente','Volver'])!=len(rows): return
-def copyfile(src,dst):
-    if exists(dst): raise ValueError('Destino ya existe')
-    tmp=dst+'.m5part'
-    if exists(tmp): raise ValueError('Temporal ya existe')
-    created=False
-    try:
-        with open(src,'rb') as f:
-            with open(tmp,'wb') as g:
-                created=True
-                while True:
-                    b=f.read(1024)
-                    if not b: break
-                    if g.write(b)!=len(b): raise OSError('Escritura parcial')
-        with open(src,'rb') as f:
-            with open(tmp,'rb') as g:
-                while True:
-                    b=f.read(1024)
-                    if b!=g.read(1024): raise OSError('Copia diferente')
-                    if not b: break
-        if hasattr(os,'sync'): os.sync()
-        os.rename(tmp,dst); created=False
-        if hasattr(os,'sync'): os.sync()
-    finally:
-        if created: os.remove(tmp)
 def browse(root,other):
     path=root
     while True:
         try:
-            names=sorted(os.listdir(path))
-            dirs=[bool(os.stat(join(path,n))[0]&0x4000) for n in names]
+            items=entries(path)
+            names=[n for n,d in items]; dirs=[d for n,d in items]
             k=elegir(path,['Subir / salir','Nueva carpeta']+[('[D] ' if d else '[F] ')+n for n,d in zip(names,dirs)])
             if k is None or k==0:
                 if path==root: return
                 path=path.rsplit('/',1)[0]; continue
             if k==1:
                 n=name_input()
-                if n: os.mkdir(join(path,n))
+                if n: mkdir(join(path,n))
                 continue
             n=names[k-2]; src=join(path,n)
             if dirs[k-2]:
@@ -109,64 +78,33 @@ def browse(root,other):
                 if nn and nn!=n:
                     dst=join(path,nn)
                     if exists(dst): raise ValueError('Destino ya existe')
-                    os.rename(src,dst)
+                    rename(src,dst)
             elif a in (3,4):
                 if other is None: raise ValueError('Otro medio no disponible')
                 dst=join(other,n)
                 if elegir('Destino: '+dst,['Cancelar','Confirmar'])==1:
-                    copyfile(src,dst)
-                    if a==4:
-                        os.remove(src)
-                        if hasattr(os,'sync'): os.sync()
+                    if a==4: movefile(src,dst)
+                    else: copyfile(src,dst)
                     notice('Operacion OK')
             elif a==5 and elegir('BORRAR '+n,['Cancelar','Confirmar'])==1:
-                os.remove(src)
-            if hasattr(os,'sync'): os.sync()
+                remove(src)
+            sync()
         except Exception as e: notice(str(e))
 def main():
-    spi=None; cs=None; mounted=False
-    flash='/flash/m5_data'; sdroot='/sd/m5_data'
+    st=Storage()
     try:
-        if not exists(flash): os.mkdir(flash)
         while True:
-            k=elegir('ARCHIVOS V0.3',['Memoria interna','Tarjeta microSD','Espacio disponible','Desmontar microSD','Volver'])
+            k=elegir('ARCHIVOS V0.4',['Memoria interna','Tarjeta microSD','Espacio disponible','Desmontar microSD','Volver'])
             if k is None or k==4: return
-            stage='Menu archivos'
             try:
-                if k==1 and not mounted:
-                    stage='Detectar montaje'
-                    if 'sd' in os.listdir('/'): raise OSError('SD externa ya montada')
-                    stage='Inicializar SPI'
-                    cs=Pin(12,Pin.OUT,value=1)
-                    spi=SoftSPI(baudrate=100000,polarity=0,phase=0,sck=Pin(40),miso=Pin(39),mosi=Pin(14))
-                    try:
-                        stage='Inicializar tarjeta'
-                        sd=SDCard(spi,cs); sd.writable=True
-                        stage='Montar FAT'
-                        os.mount(sd,'/sd'); mounted=True
-                        stage='Crear m5_data SD'
-                        if not exists(sdroot): os.mkdir(sdroot)
-                    except Exception:
-                        if not mounted: cs(1); spi.deinit(); spi=None
-                        raise
-                if k==0: browse(flash,sdroot if mounted else None)
-                elif k==1: browse(sdroot,flash)
+                if k==0: browse(st.flash,st.sdroot if st.mounted else None)
+                elif k==1: browse(st.mount(),st.flash)
                 elif k==2:
-                    rows=[]
-                    for label,path in [('Flash',flash),('SD','/sd')]:
-                        if label=='SD' and not mounted: continue
-                        s=os.statvfs(path); rows.append('%s libre %.1f MiB'%(label,s[0]*s[3]/1048576))
+                    rows=['Flash libre %.1f MiB'%(space(st.flash)[1]/1048576)]
+                    if st.mounted: rows.append('SD libre %.1f MiB'%(space(st.sdroot)[1]/1048576))
                     elegir('ESPACIO LIBRE',rows+['Volver'])
                 elif k==3:
-                    if mounted:
-                        if hasattr(os,'sync'): os.sync()
-                        os.umount('/sd'); mounted=False
-                        cs(1); spi.deinit(); spi=None
-                    notice('SD desmontada')
-            except Exception as e: elegir('ERROR: '+stage,[str(e)[:36],'Volver'])
-    finally:
-        if mounted:
-            if hasattr(os,'sync'): os.sync()
-            os.umount('/sd')
-        if spi is not None: cs(1); spi.deinit()
+                    st.close(); notice('SD desmontada')
+            except Exception as e: notice(str(e))
+    finally: st.close()
 main()
