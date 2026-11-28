@@ -60,45 +60,144 @@ def ejecutar_app(ruta):
     finally: gc.collect()
     M5.update(); time.sleep_ms(350)
 
-def apps():
-    while True:
-        try: names=sorted(n for n in os.listdir('/flash/apps') if n.endswith('.py') and not n.startswith('_'))
-        except OSError: names=[]
-        k=elegir('APPS LOCALES',names or ['Sin apps'])
-        if k is None or not names: return
-        ejecutar_app('/flash/apps/'+names[k])
+LIBDIR='/flash/m5_libs'
+LIBROOT='libraries/releases/latest/'
+def libname(n):
+    return isinstance(n,str) and 7<=len(n)<=40 and n.startswith('m5lib_') and all(c in 'abcdefghijklmnopqrstuvwxyz0123456789_' for c in n)
+def libinit():
+    import sys
+    try: os.mkdir(LIBDIR)
+    except OSError:
+        if not os.stat(LIBDIR)[0]&0x4000: raise
+    if LIBDIR not in sys.path: sys.path.append(LIBDIR)
+    from cp_catalogo_v08a import existe
+    for f in os.listdir(LIBDIR):
+        if f.endswith('.py.bak') and libname(f[:-7]):
+            p=LIBDIR+'/'+f[:-4]
+            if not existe(p): os.rename(p+'.bak',p)
+        elif f.endswith('.py.new') and libname(f[:-7]):
+            os.remove(LIBDIR+'/'+f)
+
+def libcatalog():
+    import json,binascii
+    from cp_catalogo_v08a import descarga,KEY
+    from cp_ecdsa import verificar
+    raw=descarga(LIBROOT+'manifest.json',8192)
+    sig=descarga(LIBROOT+'manifest.sig',256)
+    if not verificar(raw,KEY,binascii.unhexlify(sig.strip())): raise ValueError('Firma invalida')
+    m=json.loads(raw.decode())
+    if m['device']!='cardputer_v1_1' or m['schema']!=1 or m['kind']!='libraries': raise ValueError('Catalogo incompatible')
+    rev=m['revision']; entries=m['libraries']
+    if type(rev)!=int or not 1<=rev<=2147483647 or not isinstance(entries,list) or len(entries)>40: raise ValueError('Catalogo invalido')
+    nv=esp32.NVS('cp_libs')
+    try: old=nv.get_i32('revision')
+    except OSError: old=0
+    if rev<old: raise ValueError('Revision antigua')
+    seen=set()
+    for a in entries:
+        n=a['name']; h=a['sha256']; size=a['bytes']; v=a['version']
+        if not libname(n) or n in seen or a['path']!='libraries/modules/'+n+'.py' or type(size)!=int or not 1<=size<=32768 or not isinstance(h,str) or len(h)!=64 or any(c not in '0123456789abcdef' for c in h) or not isinstance(v,str) or not 1<=len(v)<=20: raise ValueError('Entrada invalida')
+        seen.add(n)
+    nv.set_i32('revision',rev); nv.commit()
+    return entries
+
+def libinstall(a):
+    import sys
+    from cp_catalogo_v08a import descarga,sha,hash_archivo,existe
+    n=a['name']; p=LIBDIR+'/'+n+'.py'; h=a['sha256']
+    data=descarga(a['path'],a['bytes'])
+    if len(data)!=a['bytes'] or sha(data)!=h: raise ValueError('Hash incorrecto')
+    compile(data.decode(),p,'exec')
+    with open(p+'.new','wb') as f: f.write(data)
+    if hash_archivo(p+'.new')!=h: raise ValueError('Error escritura')
+    if hasattr(os,'sync'): os.sync()
+    if existe(p):
+        if existe(p+'.bak'): os.remove(p+'.bak')
+        os.rename(p,p+'.bak')
+    try:
+        os.rename(p+'.new',p)
+        if hash_archivo(p)!=h: raise ValueError('Error final')
+        if hasattr(os,'sync'): os.sync()
+    except Exception:
+        if existe(p): os.remove(p)
+        if existe(p+'.bak'): os.rename(p+'.bak',p)
+        raise
+    sys.modules.pop(n,None)
+
+
+def module_run(name,entry):
+    import sys
+    try:
+        libinit()
+        p=LIBDIR+'/'+name+'.py'
+        from cp_catalogo_v08a import existe,hash_archivo
+        # Always verify against signed catalog before executing launcher modules.
+        entries=libcatalog()
+        a=next((x for x in entries if x['name']==name),None)
+        if a is None: raise ValueError('Modulo no publicado')
+        if not existe(p) or hash_archivo(p)!=a['sha256']: libinstall(a)
+        del entries,a
+        gc.collect()
+        m=__import__(name)
+        m.elegir=elegir
+        m.ejecutar_app=ejecutar_app
+        getattr(m,entry)()
+    except Exception as e:
+        print(repr(e)); elegir('ERROR MODULO',[str(e)[:30],'Volver'])
+    finally:
+        sys.modules.pop(name,None)
+        gc.collect()
 
 def ejecutar():
-    import sys
     M5.begin()
+    # Ventana de recuperacion: G0 mantenido durante el inicio.
     M5.Lcd.fillScreen(BG); M5.Lcd.drawString('G0: recuperar UIFlow2',5,25)
     inicio=time.ticks_ms()
     while time.ticks_diff(time.ticks_ms(),inicio)<2000:
         M5.update()
         if M5.BtnA.isPressed(): modo(1); machine.reset()
         time.sleep_ms(20)
-    if '/flash/m5_libs' not in sys.path: sys.path.append('/flash/m5_libs')
-    import cp_bootstrap as boot
-    if boot.en_prueba():
-        if elegir('CONFIRMAR NUEVO LAUNCHER',['Conservar version','Restaurar anterior'])==0: boot.confirmar()
-        else: machine.reset()
+    try:
+        with open('/flash/launcher_mode.txt') as f: directo=f.read().strip()=='keyboard'
+    except OSError: directo=False
+    libinit()
+    if directo: ejecutar_app('/flash/remote_keyboard.py')
+    import cp_catalogo_v08a
+    cp_catalogo_v08a.recuperar()
     cp_wifi.auto()
+    import cp_bootstrap
+    if cp_bootstrap.en_prueba():
+        if elegir("CONFIRMAR NUEVO LAUNCHER",["Conservar version","Restaurar anterior"])==0:
+            cp_bootstrap.confirmar()
+        else: machine.reset()
+    seleccion=0
     while True:
-        gc.collect()
-        k=elegir('V0.13b '+cp_wifi.status(),['Actualizar Launcher','Aplicaciones locales','Configuracion WiFi','Memoria RAM','Remote Keyboard','UIFlow2 temporal','Volver'])
-        if k is None or k==6: return
+        k=elegir('V0.13c '+cp_wifi.status(),['Remote Keyboard','Aplicaciones locales','UIFlow2 temporal','UIFlow2 permanente','Configuracion','Catalogo GitHub','Configuracion WiFi','Actualizar Launcher','Bibliotecas','Modulos externos','Memoria RAM'],seleccion)
+        if k is None: return
+        seleccion=k
         if k==0:
+            ejecutar_app('/flash/remote_keyboard.py')
+            cp_wifi.auto()
+        elif k==1: module_run('m5lib_launcher_apps','apps')
+        elif k==2: temporal()
+        elif k==3: modo(1); machine.reset()
+        elif k==9: module_run('m5lib_launcher_hw','hardware_menu')
+        elif k==8: module_run('m5lib_launcher_catalog','libmenu')
+        elif k==7:
             import cp_selfupdate
-            gc.collect()
             cp_selfupdate.menu(elegir)
-        elif k==1: apps()
-        elif k==2: cp_wifi.menu(elegir)
-        elif k==3:
+        elif k==6: cp_wifi.menu(elegir)
+        elif k==5:
+            import cp_catalogo_v08a
+            module_run('m5lib_launcher_catalog','depmenu')
+        elif k==10:
             gc.collect()
             elegir('MEMORIA RAM',['Libre: %d bytes'%gc.mem_free(),'Usada: %d bytes'%gc.mem_alloc(),'Volver'])
         elif k==4:
-            ejecutar_app('/flash/remote_keyboard.py')
-            cp_wifi.auto()
-        elif k==5: temporal()
+            c=elegir('ARRANQUE',['Mostrar Launcher','Remote Keyboard','UIFlow2 (reiniciar)'])
+            if c in (0,1):
+                with open('/flash/launcher_mode.txt','w') as f: f.write('keyboard' if c==1 else 'menu')
+                modo(0)
+            elif c==2: modo(1); machine.reset()
 
 if __name__=='__main__': ejecutar()
