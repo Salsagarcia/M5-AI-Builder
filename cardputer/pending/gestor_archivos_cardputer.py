@@ -2,6 +2,7 @@ import M5,time,os
 from hardware import MatrixKeyboard
 from machine import Pin,SoftSPI
 from m5lib_sdcard import SDCard
+from m5lib_textinput import read_text
 BG=0x102638
 def elegir(titulo, opciones, inicial=0):
     if not opciones: return None
@@ -48,17 +49,8 @@ def exists(p):
         raise
 def notice(s):
     elegir('INFORMACION',[str(s)[:36],'Volver'])
-def name_input():
-    # Restricted portable names, selected with existing keyboard menu.
-    s=''
-    chars='abcdefghijklmnopqrstuvwxyz0123456789_-.' 
-    while True:
-        k=elegir('Nombre: '+s,['Aceptar','Borrar','Cancelar']+list(chars))
-        if k is None or k==2: return None
-        if k==0:
-            if s and s not in ('.','..'): return s
-        elif k==1: s=s[:-1]
-        elif len(s)<32: s+=chars[k-3]
+def name_input(initial=''):
+    return read_text('Nombre',initial,32,'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-. ',lambda s: bool(s.strip()) and s not in ('.','..') and not s.endswith((' ','.')))
 def join(p,n): return p+'/'+n
 def preview(p):
     with open(p,'rb') as f:
@@ -113,8 +105,8 @@ def browse(root,other):
             if a==0: preview(src)
             elif a==1: notice('%d bytes'%os.stat(src)[6])
             elif a==2:
-                nn=name_input()
-                if nn:
+                nn=name_input(n)
+                if nn and nn!=n:
                     dst=join(path,nn)
                     if exists(dst): raise ValueError('Destino ya existe')
                     os.rename(src,dst)
@@ -137,7 +129,7 @@ def main():
     try:
         if not exists(flash): os.mkdir(flash)
         while True:
-            k=elegir('ARCHIVOS V0.2',['Memoria interna','Tarjeta microSD','Espacio disponible','Desmontar microSD','Volver'])
+            k=elegir('ARCHIVOS V0.3',['Memoria interna','Tarjeta microSD','Espacio disponible','Desmontar microSD','Volver'])
             if k is None or k==4: return
             stage='Menu archivos'
             try:
