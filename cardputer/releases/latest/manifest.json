@@ -1,7 +1,7 @@
 {
   "device": "cardputer_v1_1",
   "schema": 1,
-  "revision": 28,
+  "revision": 29,
   "applications": [
     {
       "name": "prueba_cardputer",
@@ -170,6 +170,27 @@
         },
         {
           "name": "m5lib_sdcard",
+          "min_version": "0.1"
+        }
+      ]
+    },
+    {
+      "name": "prueba_datalogger_cardputer",
+      "version": "0.1",
+      "path": "apps/prueba_datalogger_cardputer.py",
+      "bytes": 1945,
+      "sha256": "b6ffcda6dc79641ffe2da70fe4091d3706cb10e5a5144c2e278c66a6380c125d",
+      "dependencies": [
+        {
+          "name": "m5lib_storage",
+          "min_version": "0.1"
+        },
+        {
+          "name": "m5lib_sdcard",
+          "min_version": "0.1"
+        },
+        {
+          "name": "m5lib_datalogger",
           "min_version": "0.1"
         }
       ]
