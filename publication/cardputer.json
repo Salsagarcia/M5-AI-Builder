@@ -2,14 +2,9 @@
   "schema": 1,
   "items": [
     {
-      "kind": "library",
-      "name": "m5lib_storage",
-      "version": "0.1"
-    },
-    {
       "kind": "app",
-      "name": "gestor_archivos_cardputer",
-      "version": "0.4"
+      "name": "transferencia_wifi_cardputer",
+      "version": "0.1"
     }
   ]
 }
