@@ -78,12 +78,18 @@ def libinit():
         elif f.endswith('.py.new') and libname(f[:-7]):
             os.remove(LIBDIR+'/'+f)
 
-def libcatalog():
+def libcatalog(offline=False):
     import json,binascii
     from cp_catalogo_v08a import descarga,KEY
     from cp_ecdsa import verificar
-    raw=descarga(LIBROOT+'manifest.json',8192)
-    sig=descarga(LIBROOT+'manifest.sig',256)
+    cache=LIBDIR+'/launcher_catalog.bin'
+    if offline:
+        with open(cache,'rb') as f:
+            sig=f.read(128); raw=f.read(8193)
+        if len(raw)>8192: raise ValueError('Catalogo demasiado grande')
+    else:
+        raw=descarga(LIBROOT+'manifest.json',8192)
+        sig=descarga(LIBROOT+'manifest.sig',256)
     if not verificar(raw,KEY,binascii.unhexlify(sig.strip())): raise ValueError('Firma invalida')
     m=json.loads(raw.decode())
     if m['device']!='cardputer_v1_1' or m['schema']!=1 or m['kind']!='libraries': raise ValueError('Catalogo incompatible')
@@ -98,7 +104,15 @@ def libcatalog():
         n=a['name']; h=a['sha256']; size=a['bytes']; v=a['version']
         if not libname(n) or n in seen or a['path']!='libraries/modules/'+n+'.py' or type(size)!=int or not 1<=size<=32768 or not isinstance(h,str) or len(h)!=64 or any(c not in '0123456789abcdef' for c in h) or not isinstance(v,str) or not 1<=len(v)<=20: raise ValueError('Entrada invalida')
         seen.add(n)
-    nv.set_i32('revision',rev); nv.commit()
+    if not offline:
+        from cp_catalogo_v08a import existe
+        with open(cache+'.new','wb') as f:
+            f.write(sig.strip()); f.write(raw)
+        if hasattr(os,'sync'): os.sync()
+        if existe(cache): os.remove(cache)
+        os.rename(cache+'.new',cache)
+        if hasattr(os,'sync'): os.sync()
+        nv.set_i32('revision',rev); nv.commit()
     return entries
 
 def libinstall(a):
@@ -132,10 +146,21 @@ def module_run(name,entry):
         p=LIBDIR+'/'+name+'.py'
         from cp_catalogo_v08a import existe,hash_archivo
         # Always verify against signed catalog before executing launcher modules.
-        entries=libcatalog()
+        try:
+            entries=libcatalog(True)
+        except Exception:
+            entries=libcatalog()
         a=next((x for x in entries if x['name']==name),None)
         if a is None: raise ValueError('Modulo no publicado')
-        if not existe(p) or hash_archivo(p)!=a['sha256']: libinstall(a)
+        if not existe(p) or hash_archivo(p)!=a['sha256']:
+            if existe(p+'.bak') and hash_archivo(p+'.bak')==a['sha256']:
+                if existe(p): os.remove(p)
+                os.rename(p+'.bak',p)
+            else:
+                entries=libcatalog()
+                a=next((x for x in entries if x['name']==name),None)
+                if a is None: raise ValueError('Modulo no publicado')
+                libinstall(a)
         del entries,a
         gc.collect()
         m=__import__(name)
@@ -146,6 +171,7 @@ def module_run(name,entry):
         print(repr(e)); elegir('ERROR MODULO',[str(e)[:30],'Volver'])
     finally:
         sys.modules.pop(name,None)
+        m=None
         gc.collect()
 
 def ejecutar():
@@ -172,7 +198,7 @@ def ejecutar():
         else: machine.reset()
     seleccion=0
     while True:
-        k=elegir('V0.13c '+cp_wifi.status(),['Remote Keyboard','Aplicaciones locales','UIFlow2 temporal','UIFlow2 permanente','Configuracion','Catalogo GitHub','Configuracion WiFi','Actualizar Launcher','Bibliotecas','Modulos externos','Memoria RAM'],seleccion)
+        k=elegir('V0.13d '+cp_wifi.status(),['Remote Keyboard','Aplicaciones locales','UIFlow2 temporal','UIFlow2 permanente','Configuracion','Catalogo GitHub','Configuracion WiFi','Actualizar Launcher','Bibliotecas','Modulos externos','Memoria RAM','Actualizar modulos'],seleccion)
         if k is None: return
         seleccion=k
         if k==0:
@@ -190,6 +216,11 @@ def ejecutar():
         elif k==5:
             import cp_catalogo_v08a
             module_run('m5lib_launcher_catalog','depmenu')
+        elif k==11:
+            try:
+                libcatalog()
+                elegir('CATALOGO VERIFICADO',['Volver'])
+            except Exception as e: elegir('ERROR CATALOGO',[str(e)[:30],'Volver'])
         elif k==10:
             gc.collect()
             elegir('MEMORIA RAM',['Libre: %d bytes'%gc.mem_free(),'Usada: %d bytes'%gc.mem_alloc(),'Volver'])
